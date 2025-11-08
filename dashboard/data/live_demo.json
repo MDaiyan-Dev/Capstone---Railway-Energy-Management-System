@@ -1,0 +1,79 @@
+{
+  "kpi": {
+    "demandServed": 0.985,
+    "gridDependence": 0.61,
+    "regenUtilization": 0.42,
+    "voltageDeviation": 0.03
+  },
+  "tiles": {
+    "tractionLoad": "420 kW",
+    "batterySOC": "78%",
+    "regenToday": "1.8 MWh",
+    "activeAlarms": 2
+  },
+  "status": {
+    "assets": [
+      {
+        "id": "subA",
+        "label": "Sub A",
+        "type": "substation",
+        "pos": 0.15,
+        "state": "green",
+        "vDev": "2.0%",
+        "reason": "normal",
+        "ts": "2025-11-05T22:55:00Z"
+      },
+      {
+        "id": "staB",
+        "label": "Sta B",
+        "type": "station",
+        "pos": 0.31,
+        "state": "amber",
+        "reason": "voltage dev 6%",
+        "ts": "2025-11-05T22:55:10Z"
+      },
+      {
+        "id": "bess",
+        "label": "BESS",
+        "type": "bess",
+        "pos": 0.47,
+        "state": "green",
+        "soc": "78%",
+        "reason": "idle",
+        "ts": "2025-11-05T22:55:12Z"
+      },
+      {
+        "id": "subC",
+        "label": "Sub C",
+        "type": "substation",
+        "pos": 0.78,
+        "state": "green",
+        "vDev": "1.5%",
+        "reason": "normal",
+        "ts": "2025-11-05T22:55:05Z"
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "e1",
+      "severity": "alarm",
+      "text": "High load near Sub A",
+      "action": "shed noncritical",
+      "ts": "2025-11-05T22:54:30Z"
+    },
+    {
+      "id": "e2",
+      "severity": "warn",
+      "text": "Segment near Sta B voltage 6% dev",
+      "action": "monitor",
+      "ts": "2025-11-05T22:55:00Z"
+    },
+    {
+      "id": "e3",
+      "severity": "info",
+      "text": "Operator login",
+      "ts": "2025-11-05T22:53:10Z"
+    }
+  ]
+}

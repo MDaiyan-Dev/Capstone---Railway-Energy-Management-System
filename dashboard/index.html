@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REMS Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <header id="kpis" class="panel">
+      <div class="kpi"><span class="label">Demand Served</span><span id="kpi-demand" class="value">empty</span></div>
+      <div class="kpi"><span class="label">Grid Dependence</span><span id="kpi-grid" class="value">empty</span></div>
+      <div class="kpi"><span class="label">Regen Utilization</span><span id="kpi-regen" class="value">empty</span></div>
+      <div class="kpi"><span class="label">Voltage Deviation</span><span id="kpi-volt" class="value">empty</span></div>
+      <div class="cfg">
+        <input id="dataBase" placeholder="Data API base (e.g., http://localhost:9000)" />
+        <input id="simBase" placeholder="Simulator API base (e.g., http://localhost:9100)" />
+        <input id="runId" placeholder="Run ID (for simulator)" />
+        <button id="btnFetchLive">Fetch Live</button>
+        <button id="btnFetchRun">Fetch Run</button>
+        <button id="btnDemoLive">Demo Live</button>
+        <button id="btnDemoRun">Demo Run</button>
+        <span id="lastUpdate" class="meta muted">Last update: none</span>
+      </div>
+    </header>
+
+    <section id="map" class="panel">
+      <div class="badge sim" id="simBadge">SIMULATED</div>
+      <h3 class="title">Map / Status <span id="statusText" class="statusText">unknown</span></h3>
+      <div class="statusbar" id="statusbar" aria-hidden="true"></div>
+      <div class="legend" id="legend">
+        <div><span class="chip dot green"></span> Green normal</div>
+        <div><span class="chip dot amber"></span> Amber caution</div>
+        <div><span class="chip dot red"></span> Red fault</div>
+        <div><span class="chip shape sub"></span> Substation</div>
+        <div><span class="chip shape sta"></span> Station</div>
+        <div><span class="chip shape bess"></span> BESS</div>
+      </div>
+      <div class="mapbox">
+        <svg id="mapSvg" viewBox="0 0 1000 420">
+          <path d="M80 210 L920 210" class="track"/>
+        </svg>
+        <div class="tip" id="tip"></div>
+      </div>
+    </section>
+
+    <section id="tiles" class="panel">
+      <h3 class="title">Live Tiles</h3>
+      <div class="tile" data-key="tractionLoad">
+        <div class="small">Traction Load</div>
+        <div class="big" id="tile-load">empty</div>
+        <div class="small">mini trend: empty</div>
+      </div>
+      <div class="tile" data-key="batterySOC">
+        <div class="small">Battery SoC</div>
+        <div class="big" id="tile-soc">empty</div>
+        <div class="small">charge or discharge: empty</div>
+      </div>
+      <div class="tile" data-key="regenToday">
+        <div class="small">Regen Energy Today</div>
+        <div class="big" id="tile-regen">empty</div>
+        <div class="small">since 00:00: empty</div>
+      </div>
+      <div class="tile" data-key="activeAlarms">
+        <div class="small">Active Alarms</div>
+        <div class="big" id="tile-alarms">empty</div>
+        <div class="small">click to open list (demo)</div>
+      </div>
+    </section>
+
+    <section id="events" class="panel">
+      <h3 class="title">Events / Alarms <span id="evtCounts" class="muted"></span></h3>
+      <div id="eventList"></div>
+    </section>
+
+    <section id="timeline" class="panel">
+      <div class="controls">
+        <button id="play">Play</button>
+        <button id="pause">Pause</button>
+        <button id="step">Step</button>
+        <label class="meta">Speed
+          <select id="speed"><option>1</option><option>2</option><option>4</option></select>
+        </label>
+        <label class="meta"><input type="checkbox" id="toggleSim"> Show simulated overlay badge</label>
+      </div>
+      <div class="sliderWrap">
+        <input id="slider" type="range" min="0" max="0" value="0">
+        <div id="playhead" class="playhead-badge">t = 0s</div>
+        <div id="ticks" class="ticks"></div>
+      </div>
+      <div class="meta"><span id="timeLabel">Time: empty</span></div>
+    </section>
+  </div>
+
+  <input id="pickLive" type="file" accept=".json,application/json" style="display:none" />
+  <input id="pickRun" type="file" accept=".json,application/json" style="display:none" />
+
+  <script src="js/app.js"></script>
+</body>
+</html>
