@@ -124,10 +124,14 @@ function setIndex(i){
   i=Math.max(0,Math.min(i,pts.length-1));
   tIndex=i; els.slider.value=String(i);
   const pt=pts[i];
-  renderKPIs(pt.kpi); renderAssets(pt.assets); renderEvents(pt.events);
+  renderKPIs(pt.kpi);
+  renderAssets(pt.assets);
+  renderEvents(pt.events);
+  if(pt.extra) renderTiles(pt.extra);
   els.timeLabel.textContent=`Time: t = ${pt.t}s (run ${runData.meta?.runId||'unknown'})`;
   updatePlayhead();
 }
+
 function updatePlayhead(){
   const w=els.slider.getBoundingClientRect().width;
   const max=Number(els.slider.max)||1, val=Number(els.slider.value)||0;

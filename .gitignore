@@ -1,0 +1,72 @@
+# -----------------------------
+# Python virtual environments
+# -----------------------------
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# -----------------------------
+# Python cache & build files
+# -----------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# -----------------------------
+# Simulator outputs
+# -----------------------------
+simulator/outputs/
+simulator/src/Demo/week6_outputs/
+*.csv
+*.jsonl
+*.png
+bus/in/
+bus/out/
+
+# Keep schemas but ignore bus contents
+!data_layer/schemas/
+!simulator/src/**/*.json
+
+# -----------------------------
+# Node / Dashboard
+# -----------------------------
+dashboard/node_modules/
+dashboard/.parcel-cache/
+dashboard/.next/
+dashboard/dist/
+dashboard/build/
+
+# If using Vite or other bundlers
+dashboard/.vite/
+
+# Local config files automatically generated
+dashboard/.env
+dashboard/.env.local
+dashboard/.env.development.local
+dashboard/.env.production.local
+
+# -----------------------------
+# IDE / Editor files
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------------
+# OS Junk
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+logs/
