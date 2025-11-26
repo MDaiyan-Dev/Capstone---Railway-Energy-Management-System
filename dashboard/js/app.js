@@ -1,7 +1,13 @@
 const els={
   mapSvg:byId('mapSvg'), tip:byId('tip'), statusbar:byId('statusbar'), statusText:byId('statusText'),
   kpi:{demand:byId('kpi-demand'),grid:byId('kpi-grid'),regen:byId('kpi-regen'),volt:byId('kpi-volt')},
-  tiles:{load:byId('tile-load'),soc:byId('tile-soc'),regen:byId('tile-regen'),alarms:byId('tile-alarms')},
+  tiles:{
+    load:byId('tile-load'),
+    soc:byId('tile-soc'),
+    regen:byId('tile-regen'),
+    alarms:byId('tile-alarms'),
+    storage:byId('tile-storage')
+  },
   eventList:byId('eventList'), evtCounts:byId('evtCounts'),
   slider:byId('slider'), speed:byId('speed'), timeLabel:byId('timeLabel'),
   playhead:byId('playhead'), ticks:byId('ticks'),
@@ -16,6 +22,25 @@ let runData=null, playTimer=null, tIndex=0, lastLiveAt=null, prevEventKeys=new S
 function byId(id){return document.getElementById(id)}
 function fmtPct(x){return (x*100).toFixed(1)+'%'}
 function bestColor(state){ if(state==='red')return '#ed8796'; if(state==='amber')return '#f8bd60'; if(state==='green')return '#2e7d32'; return '#7f849c'}
+
+// subtitle elements under the tiles (no HTML change needed)
+els.tiles.loadTrend = document.querySelector('.tile[data-key="tractionLoad"] .small:nth-child(3)');
+els.tiles.socFlow   = document.querySelector('.tile[data-key="batterySOC"] .small:nth-child(3)');
+els.tiles.regenInfo = document.querySelector('.tile[data-key="regenToday"] .small:nth-child(3)');
+
+// track previous numeric values so we can compute trends
+let prevTileState = {
+  load: null,   // W
+  soc:  null,   // %
+  regen: null   // kWh
+};
+
+// parse first number from a string like "1570344 W" or "42%"
+function parseNumber(str){
+  if(!str) return NaN;
+  const m = String(str).match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+}
 
 const ACK_KEY='rems_ack_v1'; let ackSet=new Set();
 try{ ackSet=new Set(JSON.parse(localStorage.getItem(ACK_KEY)||'[]')) }catch(_){}
@@ -46,6 +71,52 @@ function renderTiles(t){
   els.tiles.soc.textContent=t.batterySOC??'empty';
   els.tiles.regen.textContent=t.regenToday??'empty';
   els.tiles.alarms.textContent=t.activeAlarms??'empty';
+  if(els.tiles.storage) els.tiles.storage.textContent = t.storageShare ?? 'empty';
+
+  // numeric versions
+  const loadVal  = parseNumber(t.tractionLoad);
+  const socVal   = parseNumber(t.batterySOC);
+  const regenVal = parseNumber(t.regenToday);
+
+  // --- mini trend for traction load ---
+  if(els.tiles.loadTrend){
+    let trend = 'mini trend: steady';
+    if(!isNaN(loadVal) && prevTileState.load != null){
+      const up = prevTileState.load * 1.02;
+      const down = prevTileState.load * 0.98;
+      if(loadVal > up) trend = 'mini trend: rising';
+      else if(loadVal < down) trend = 'mini trend: falling';
+    }
+    els.tiles.loadTrend.textContent = trend;
+  }
+
+  // --- charge / discharge label based on SoC movement ---
+  if(els.tiles.socFlow){
+    let flow = 'charge or discharge: idle';
+    if(!isNaN(socVal) && prevTileState.soc != null){
+      if(socVal > prevTileState.soc + 0.1)      flow = 'charge or discharge: charging';
+      else if(socVal < prevTileState.soc - 0.1) flow = 'charge or discharge: discharging';
+    }
+    els.tiles.socFlow.textContent = flow;
+  }
+
+  // --- regen tile subtitle ---
+  if(els.tiles.regenInfo){
+    let info;
+    if(isNaN(regenVal) || regenVal <= 0.001){
+      info = 'since 00:00: no regen yet';
+    }else{
+      if(regenVal < 0.5)       info = 'since 00:00: low recovered energy';
+      else if(regenVal < 2.0)  info = 'since 00:00: moderate recovered energy';
+      else                     info = 'since 00:00: high recovered energy';
+    }
+    els.tiles.regenInfo.textContent = info;
+  }
+
+  // update previous numeric state
+  if(!isNaN(loadVal))  prevTileState.load = loadVal;
+  if(!isNaN(socVal))   prevTileState.soc  = socVal;
+  if(!isNaN(regenVal)) prevTileState.regen = regenVal;
 
   // Alarms tile highlighting
   const alarmsCount = Number(t.activeAlarms ?? 0);
@@ -335,7 +406,8 @@ const focusMap = {
   batterySOC: (a)=>a.type==='bess',
   tractionLoad: (a)=>a.type==='substation',
   regenToday: (a)=>a.type==='station',
-  activeAlarms: (a)=>a.state && a.state!=='green'
+  activeAlarms: (a)=>a.state && a.state!=='green',
+  storageShare: (a)=>a.type==='bess'
 };
 
 function highlightTargets(pred){
@@ -352,6 +424,5 @@ function highlightTargets(pred){
     if(pred) highlightTargets(pred);
   });
 });
-
 
 fetchJSON('data/live_demo.json').then(applyLivePayload).catch(()=>{});

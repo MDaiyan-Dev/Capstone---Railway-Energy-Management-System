@@ -2,7 +2,7 @@
   "train": {
     "name": "MR90_3car",
     "mass_kg": 146099.0,
-    "a_acc_mps2": 0.60,
+    "a_acc_mps2": 0.667,
     "a_brk_mps2": 0.89,
     "P_max_w": 1300000.0,
     "F_max_n": 150000.0,

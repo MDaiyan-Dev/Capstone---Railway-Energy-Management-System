@@ -454,8 +454,12 @@ def build_run_payload(run_id: str) -> dict:
 
         if total_pos > 1e-6:
             grid_frac = P_grid_pos / total_pos
+            storage_share = (P_batt_pos + P_sc_pos) / total_pos
         else:
             grid_frac = last_grid_frac
+            storage_share = 0.0
+
+        storage_share = _clamp01(storage_share)
 
         # Regen utilization from *step* regen energy, normalized over max step
         step_kwh = regen_step_kwh[idx] if idx < len(regen_step_kwh) else 0.0
@@ -486,13 +490,11 @@ def build_run_payload(run_id: str) -> dict:
                 }
             )
 
-        # Grid peak alarm:
-        # - near top of grid range AND
-        # - high dependence on grid in the power mix
+        # Grid peak alarm: only when near top of grid range *and* moving
         if (
             max_grid_power > 0.0
-            and grid_stress >= 0.97
-            and grid_frac >= 0.9
+            and P_grid_pos > 0.5 * max_grid_power
+            and (P_grid_pos / max_grid_power) >= 0.97
             and r.v_mps > 0.5 * r.limit_mps
         ):
             active_alarms += 1
@@ -523,6 +525,7 @@ def build_run_payload(run_id: str) -> dict:
             "batterySOC": soc_text,
             "regenToday": f"{regen_today_kwh:.2f} kWh",
             "activeAlarms": active_alarms,
+            "storageShare": f"{storage_share * 100:.1f}%",
         }
 
         assets = make_assets_for_point(
@@ -624,11 +627,15 @@ def api_snapshot():
     P_grid_pos = max(r.P_grid_w, 0.0)
     P_batt_pos = max(r.P_batt_w, 0.0)
     P_sc_pos = max(r.P_sc_w, 0.0)
-    total_pos = P_grid_pos + P_batt_pos + P_sc_pos
+    total_pos = P_grid_pos + P_batt_pos + P_sc_w if False else P_grid_pos + P_batt_pos + P_sc_pos  # keep structure simple
     if total_pos > 1e-6:
         grid_frac = P_grid_pos / total_pos
+        storage_share = (P_batt_pos + P_sc_pos) / total_pos
     else:
         grid_frac = 0.0
+        storage_share = 0.0
+
+    storage_share = _clamp01(storage_share)
 
     # Regen utilization from per-step mechanical regen
     step_kwh = regen_step_kwh[idx] if idx < len(regen_step_kwh) else 0.0
@@ -646,21 +653,21 @@ def api_snapshot():
     recent_events: List[Dict[str, Any]] = []
 
     if r.soc_batt > 0 and r.soc_batt < 0.2:
-      active_alarms += 1
-      recent_events.append(
-          {
-              "id": f"low-soc-live-{idx}",
-              "severity": "alarm",
-              "text": f"Battery SoC low ({r.soc_batt*100:.0f}%)",
-              "action": None,
-              "ts": f"t={r.t_s:.1f}",
-          }
-      )
+        active_alarms += 1
+        recent_events.append(
+            {
+                "id": f"low-soc-live-{idx}",
+                "severity": "alarm",
+                "text": f"Battery SoC low ({r.soc_batt*100:.0f}%)",
+                "action": None,
+                "ts": f"t={r.t_s:.1f}",
+            }
+        )
 
     if (
         max_grid_power > 0.0
-        and grid_stress >= 0.97
-        and grid_frac >= 0.9
+        and P_grid_pos > 0.5 * max_grid_power
+        and (P_grid_pos / max_grid_power) >= 0.97
         and r.v_mps > 0.5 * r.limit_mps
     ):
         active_alarms += 1
@@ -705,6 +712,7 @@ def api_snapshot():
         "batterySOC": soc_text,
         "regenToday": f"{regen_today_kwh:.2f} kWh",
         "activeAlarms": active_alarms,
+        "storageShare": f"{storage_share * 100:.1f}%",
     }
 
     assets = make_assets_for_point(
