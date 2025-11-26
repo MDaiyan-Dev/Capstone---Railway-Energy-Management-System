@@ -22,40 +22,103 @@ try{ ackSet=new Set(JSON.parse(localStorage.getItem(ACK_KEY)||'[]')) }catch(_){}
 function saveAck(){ try{ localStorage.setItem(ACK_KEY, JSON.stringify([...ackSet])) }catch(_){ } }
 function evKey(ev){ return ev?.id || (ev?.ts ? (ev.text||'')+'@'+ev.ts : (ev?.text||'')) }
 
-function renderKPIs(k){ if(!k)return;
+function renderKPIs(k){
+  if(!k)return;
   els.kpi.demand.textContent=fmtPct(k.demandServed??0);
   els.kpi.grid.textContent=fmtPct(k.gridDependence??0);
   els.kpi.regen.textContent=fmtPct(k.regenUtilization??0);
   els.kpi.volt.textContent=fmtPct(k.voltageDeviation??0);
+
+  // Voltage deviation colouring: green / amber / red
+  const vd = k.voltageDeviation ?? 0;
+  if(vd > 0.04){
+    els.kpi.volt.style.color = '#ed8796'; // high deviation
+  }else if(vd > 0.03){
+    els.kpi.volt.style.color = '#f8bd60'; // moderate
+  }else{
+    els.kpi.volt.style.color = '#a6da95'; // low deviation
+  }
 }
-function renderTiles(t){ if(!t)return;
+
+function renderTiles(t){
+  if(!t)return;
   els.tiles.load.textContent=t.tractionLoad??'empty';
   els.tiles.soc.textContent=t.batterySOC??'empty';
   els.tiles.regen.textContent=t.regenToday??'empty';
   els.tiles.alarms.textContent=t.activeAlarms??'empty';
+
+  // Alarms tile highlighting
+  const alarmsCount = Number(t.activeAlarms ?? 0);
+  const alarmsTile = els.tiles.alarms && els.tiles.alarms.parentElement;
+  if(alarmsTile){
+    if(alarmsCount > 0){
+      alarmsTile.style.borderColor = '#ed8796';
+      alarmsTile.style.boxShadow = '0 0 10px rgba(237,135,150,0.7)';
+    }else{
+      alarmsTile.style.borderColor = '';
+      alarmsTile.style.boxShadow = '';
+    }
+  }
 }
 
 function renderEvents(arr){
   els.eventList.innerHTML='';
   let active=0, acked=0;
   (arr||[]).forEach(ev=>{
-    const key=evKey(ev); const isAck=ackSet.has(key); if(isAck) acked++; else active++;
-    const row=document.createElement('div'); row.className='event';
+    const key=evKey(ev);
+    const isAck=ackSet.has(key);
+    if(isAck) acked++; else active++;
+
+    const row=document.createElement('div');
+    row.className='event';
     if(!prevEventKeys.has(key)) row.classList.add('flash');
-    row.innerHTML=`<span class="pill" style="${sevStyle(ev.severity)}">${ev.severity||'info'}</span>
-      <div>${ev.text||'empty'} ${ev.action?(' action: '+ev.action):''}</div>
-      <button class="${isAck?'acked':''}" ${isAck?'disabled':''}>${isAck?'Acked':'Acknowledge'}</button>`;
-    const btn=row.querySelector('button');
-    btn.onclick=(e)=>{ ackSet.add(key); saveAck(); e.target.textContent='Acked'; e.target.disabled=true; e.target.classList.add('acked'); updateEventCounts(); };
+
+    const pill=document.createElement('span');
+    pill.className='pill';
+    pill.style = sevStyle(ev.severity);
+    pill.textContent = ev.severity || 'info';
+
+    const textDiv=document.createElement('div');
+    textDiv.textContent = (ev.text||'empty') + (ev.action?(' action: '+ev.action):'');
+
+    const btn=document.createElement('button');
+    btn.textContent = isAck ? 'Unacknowledge' : 'Acknowledge';
+    if(isAck) btn.classList.add('acked');
+
+    btn.onclick=(e)=>{
+      const currentlyAck = ackSet.has(key);
+      if(currentlyAck){
+        ackSet.delete(key);
+        e.target.textContent='Acknowledge';
+        e.target.classList.remove('acked');
+      }else{
+        ackSet.add(key);
+        e.target.textContent='Unacknowledge';
+        e.target.classList.add('acked');
+      }
+      saveAck();
+      updateEventCounts();
+    };
+
+    row.appendChild(pill);
+    row.appendChild(textDiv);
+    row.appendChild(btn);
     els.eventList.appendChild(row);
-    if(!prevEventKeys.has(key)) row.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+    if(!prevEventKeys.has(key)){
+      row.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
     prevEventKeys.add(key);
   });
   updateEventCounts(active, acked);
 }
-function sevStyle(s){ if(s==='alarm')return 'background:rgba(237,135,150,.15);color:#ffc9d1;border-color:#ed8796';
+
+function sevStyle(s){
+  if(s==='alarm')return 'background:rgba(237,135,150,.15);color:#ffc9d1;border-color:#ed8796';
   if(s==='warn')return 'background:rgba(248,189,96,.15);color:#fee0b1;border-color:#f8bd60';
-  return 'background:rgba(139,213,202,.12);color:#d2fff7;border-color:#8bd5ca';}
+  return 'background:rgba(139,213,202,.12);color:#d2fff7;border-color:#8bd5ca';
+}
+
 function updateEventCounts(active, acked){
   if(active==null || acked==null){
     const btns=[...els.eventList.querySelectorAll('button')];
@@ -66,7 +129,13 @@ function updateEventCounts(active, acked){
 }
 
 function clearSites(){[...els.mapSvg.querySelectorAll('.site-dot,.site-label')].forEach(n=>n.remove())}
-function stateGlow(s){ const c=bestColor(s); if(s==='red')return `drop-shadow(0 0 8px ${c})`; if(s==='amber')return `drop-shadow(0 0 6px ${c})`; return 'none' }
+function stateGlow(s){
+  const c=bestColor(s);
+  if(s==='red')return `drop-shadow(0 0 8px ${c})`;
+  if(s==='amber')return `drop-shadow(0 0 6px ${c})`;
+  return 'none';
+}
+
 function renderAssets(assets){
   clearSites();
   let worst='green';
@@ -104,9 +173,14 @@ function renderAssets(assets){
   });
 
   setStatusbar(worst);
-  els.mapSvg.onmousemove=e=>{const b=els.mapSvg.getBoundingClientRect(); els.tip.style.left=(e.clientX-b.left)+'px'; els.tip.style.top=(e.clientY-b.top)+'px';}
+  els.mapSvg.onmousemove=e=>{
+    const b=els.mapSvg.getBoundingClientRect();
+    els.tip.style.left=(e.clientX-b.left)+'px';
+    els.tip.style.top=(e.clientY-b.top)+'px';
+  };
   els.mapSvg.onmouseleave=hideTip;
 }
+
 function setStatusbar(worst){
   const c = bestColor(worst);
   els.statusbar.style.background = c; els.statusbar.style.opacity = .35;
@@ -115,8 +189,23 @@ function setStatusbar(worst){
 function showTip(html){ els.tip.innerHTML=html; els.tip.style.opacity=1 }
 function hideTip(){ els.tip.style.opacity=0 }
 
-function applyLivePayload(p){ renderKPIs(p.kpi); renderTiles(p.tiles); renderEvents(p.events); renderAssets(p.status?.assets); els.timeLabel.textContent='Time: live'; lastLiveAt = Date.now(); }
-function applyRun(run){ runData=run; const pts=run?.timeline?.points||[]; els.slider.max=Math.max(0,pts.length-1); setIndex(0); byId('simBadge').style.display='inline-block'; renderTicks(); }
+function applyLivePayload(p){
+  renderKPIs(p.kpi);
+  renderTiles(p.tiles);
+  renderEvents(p.events);
+  renderAssets(p.status?.assets);
+  els.timeLabel.textContent='Time: live';
+  lastLiveAt = Date.now();
+}
+
+function applyRun(run){
+  runData=run;
+  const pts=run?.timeline?.points||[];
+  els.slider.max=Math.max(0,pts.length-1);
+  setIndex(0);
+  byId('simBadge').style.display='inline-block';
+  renderTicks();
+}
 
 function setIndex(i){
   if(!runData) return;
@@ -139,6 +228,7 @@ function updatePlayhead(){
   els.playhead.style.left = x+'px';
   els.playhead.textContent = `t = ${runData ? runData.timeline.points[val].t : 0}s`;
 }
+
 function renderTicks(){
   els.ticks.innerHTML='';
   if(!runData) return;
@@ -155,7 +245,8 @@ function renderTicks(){
   });
 }
 
-function play(){ if(playTimer||!runData) return;
+function play(){
+  if(playTimer||!runData) return;
   playTimer=setInterval(()=>{
     const step=Number(els.speed.value)||1;
     if(tIndex>=runData.timeline.points.length-1){pause();return;}
@@ -165,33 +256,88 @@ function play(){ if(playTimer||!runData) return;
 function pause(){ clearInterval(playTimer); playTimer=null }
 
 els.slider.oninput=e=>{ setIndex(Number(e.target.value||0)); updatePlayhead(); };
-byId('play').onclick=play; byId('pause').onclick=pause; byId('step').onclick=()=>setIndex(tIndex+1);
+byId('play').onclick=play;
+byId('pause').onclick=pause;
+byId('step').onclick=()=>setIndex(tIndex+1);
 byId('toggleSim').onchange=e=>byId('simBadge').style.display=e.target.checked?'inline-block':'none';
 
-async function fetchJSON(url){ const r=await fetch(url); if(!r.ok)throw new Error('HTTP '+r.status); return r.json(); }
+async function fetchJSON(url){
+  const r=await fetch(url);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
 function pickAndRead(input, cb){
-  input.onchange = async () => { const file = input.files && input.files[0]; if(!file) return; try{ cb(JSON.parse(await file.text())) } catch(e){ alert('Invalid JSON'); } input.value=''; };
+  input.onchange = async () => {
+    const file = input.files && input.files[0];
+    if(!file) return;
+    try{
+      cb(JSON.parse(await file.text()));
+    } catch(e){
+      alert('Invalid JSON');
+    }
+    input.value='';
+  };
   input.click();
 }
 
 byId('btnFetchLive').onclick=async()=>{
-  try{ const base=els.dataBase.value.trim(); if(!base) return alert('Set Data API base'); const p=await fetchJSON(base.replace(/\/$/,'')+'/snapshot'); applyLivePayload(p); }
-  catch(e){ alert('Live fetch failed: '+e.message) }
+  try{
+    const base=els.dataBase.value.trim();
+    if(!base) return alert('Set Data API base');
+    const p=await fetchJSON(base.replace(/\/$/,'')+'/snapshot');
+    applyLivePayload(p);
+  }
+  catch(e){
+    alert('Live fetch failed: '+e.message);
+  }
 };
+
 byId('btnFetchRun').onclick=async()=>{
-  try{ const base=els.simBase.value.trim(), id=els.runId.value.trim(); if(!base||!id) return alert('Set Simulator base and Run ID'); const run=await fetchJSON(base.replace(/\/$/,'')+'/runs/'+encodeURIComponent(id)); applyRun(run); }
-  catch(e){ alert('Run fetch failed: '+e.message) }
+  try{
+    const base=els.simBase.value.trim(), id=els.runId.value.trim();
+    if(!base||!id) return alert('Set Simulator base and Run ID');
+    const run=await fetchJSON(base.replace(/\/$/,'')+'/runs/'+encodeURIComponent(id));
+    applyRun(run);
+  }
+  catch(e){
+    alert('Run fetch failed: '+e.message);
+  }
 };
-byId('btnDemoLive').onclick=async()=>{ try{ const p=await fetchJSON('data/live_demo.json'); applyLivePayload(p); } catch(_){ pickAndRead(els.pickLive, applyLivePayload); } };
-byId('btnDemoRun').onclick=async()=>{ try{ const r=await fetchJSON('data/run_demo.json'); applyRun(r); } catch(_){ pickAndRead(els.pickRun, applyRun); } };
+
+byId('btnDemoLive').onclick=async()=>{
+  try{
+    const p=await fetchJSON('data/live_demo.json');
+    applyLivePayload(p);
+  } catch(_){
+    pickAndRead(els.pickLive, applyLivePayload);
+  }
+};
+
+byId('btnDemoRun').onclick=async()=>{
+  try{
+    const r=await fetchJSON('data/run_demo.json');
+    applyRun(r);
+  } catch(_){
+    pickAndRead(els.pickRun, applyRun);
+  }
+};
 
 setInterval(()=>{
-  if(!lastLiveAt){ els.lastUpdate.textContent = 'Last update: none'; return; }
+  if(!lastLiveAt){
+    els.lastUpdate.textContent = 'Last update: none';
+    return;
+  }
   const secs = Math.floor((Date.now()-lastLiveAt)/1000);
   els.lastUpdate.textContent = `Last update: ${secs}s ago`;
 }, 1000);
 
-const focusMap = { batterySOC: (a)=>a.type==='bess', tractionLoad: (a)=>a.type==='substation', regenToday: (a)=>a.type==='station', activeAlarms: (a)=>a.state && a.state!=='green' };
+const focusMap = {
+  batterySOC: (a)=>a.type==='bess',
+  tractionLoad: (a)=>a.type==='substation',
+  regenToday: (a)=>a.type==='station',
+  activeAlarms: (a)=>a.state && a.state!=='green'
+};
+
 function highlightTargets(pred){
   const nodes=[...els.mapSvg.querySelectorAll('.site-dot')];
   nodes.forEach(n=>n.style.transform='');
@@ -199,10 +345,13 @@ function highlightTargets(pred){
   targets.forEach(t=>{ t.style.transform='scale(1.25)'; });
   setTimeout(()=>targets.forEach(t=>t.style.transform=''), 1600);
 }
+
 [...document.querySelectorAll('.tile')].forEach(tile=>{
   tile.addEventListener('click',()=>{
-    const pred=focusMap[tile.dataset.key]; if(pred) highlightTargets(pred);
+    const pred=focusMap[tile.dataset.key];
+    if(pred) highlightTargets(pred);
   });
 });
+
 
 fetchJSON('data/live_demo.json').then(applyLivePayload).catch(()=>{});

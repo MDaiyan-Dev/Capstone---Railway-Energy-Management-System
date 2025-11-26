@@ -62,7 +62,7 @@ dashboard/.env.production.local
 # -----------------------------
 # OS Junk
 # -----------------------------
-.DS_Store
+.DS_Store   
 Thumbs.db
 
 # -----------------------------

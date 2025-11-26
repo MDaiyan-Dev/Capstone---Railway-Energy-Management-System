@@ -12,6 +12,7 @@ timeline in bus/out/ems.command.v1.jsonl using V1 policies:
 
 This is an offline / advisory EMS: it runs over a completed run (e.g. week6)
 and shows what commands it would have sent at each tick.
+
 """
 
 from __future__ import annotations
