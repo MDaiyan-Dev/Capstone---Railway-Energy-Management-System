@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -107,13 +108,42 @@ def default_config() -> Dict[str, Any]:
     }
 
 
-def load_config(path: Optional[Path]) -> Dict[str, Any]:
-    if path is None:
-        return default_config()
+def deep_merge(base: Any, overrides: Any) -> Any:
+    if isinstance(base, dict) and isinstance(overrides, dict):
+        merged = {k: deepcopy(v) for k, v in base.items()}
+        for key, value in overrides.items():
+            if key in merged:
+                merged[key] = deep_merge(merged[key], value)
+            else:
+                merged[key] = deepcopy(value)
+        return merged
+    return deepcopy(overrides)
+
+
+def load_json_object(path: Path, label: str) -> Dict[str, Any]:
     if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {path}")
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        raise FileNotFoundError(f"{label} file not found: {path}")
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"{label} file is not valid JSON: {path} "
+            f"(line {exc.lineno}, column {exc.colno})"
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise ValueError(f"{label} file must contain a JSON object: {path}")
+
+    return data
+
+
+def load_config(path: Optional[Path], overrides_path: Optional[Path] = None) -> Dict[str, Any]:
+    base_cfg = default_config() if path is None else load_json_object(path, "Config")
+    if overrides_path is None:
+        return base_cfg
+    overrides_cfg = load_json_object(overrides_path, "Overrides")
+    return deep_merge(base_cfg, overrides_cfg)
 
 
 def build_params(cfg: Dict[str, Any], sim_mode: str, run_id: str, dt: float):
@@ -558,7 +588,22 @@ def build_timeline(
     return df
 
 
-def compute_kpi(df: pd.DataFrame, run_id: str, total_distance_m: float) -> dict:
+def _rising_edge_count(mask: pd.Series) -> int:
+    if len(mask) == 0:
+        return 0
+    mask_bool = mask.astype(bool)
+    prev = mask_bool.shift(1, fill_value=False)
+    return int((mask_bool & (~prev)).sum())
+
+
+def compute_kpi(
+    df: pd.DataFrame,
+    run_id: str,
+    total_distance_m: float,
+    mode: str,
+    grid_sag_limit_w: Optional[float],
+    baseline_grid_kwh: Optional[float],
+) -> dict:
     distance_km = total_distance_m / 1000.0
 
     # mechanical traction and regen (same in both modes)
@@ -577,6 +622,57 @@ def compute_kpi(df: pd.DataFrame, run_id: str, total_distance_m: float) -> dict:
     regen_captured_kwh = float(df.get("regen_kwh_captured", pd.Series([0.0])).iloc[-1])
     regen_lost_kwh = float(df.get("regen_kwh_lost", pd.Series([0.0])).iloc[-1])
 
+    # additional KPIs
+    distance_from_timeline_km = (float(df["x_m"].max()) / 1000.0) if len(df) else 0.0
+    final_energy_kwh = kwh_trac
+    energy_intensity = (
+        final_energy_kwh / distance_from_timeline_km
+        if distance_from_timeline_km > 0.0
+        else 0.0
+    )
+
+    pos_power = df.loc[df["power_w"] > 0.0, "power_w"] if "power_w" in df.columns else pd.Series(dtype=float)
+    if len(pos_power) > 0:
+        mean_pos_power = float(pos_power.mean())
+        peak_pos_power = float(pos_power.max())
+        peak_to_avg = (peak_pos_power / mean_pos_power) if mean_pos_power > 0.0 else 0.0
+    else:
+        peak_to_avg = 0.0
+
+    dt_series = df["t"].diff().fillna(0.0).clip(lower=0.0) if "t" in df.columns else pd.Series([0.0] * len(df))
+
+    if (
+        grid_sag_limit_w is not None
+        and grid_sag_limit_w > 0.0
+        and "P_grid_w" in df.columns
+    ):
+        grid_crit_mask = df["P_grid_w"] >= (0.97 * grid_sag_limit_w)
+        voltage_violation_s = float(dt_series[grid_crit_mask].sum())
+    else:
+        grid_crit_mask = pd.Series([False] * len(df))
+        voltage_violation_s = 0.0
+
+    soc_crit_mask = (
+        (df.get("soc_batt", pd.Series([0.0] * len(df))) > 0.0)
+        & (df.get("soc_batt", pd.Series([0.0] * len(df))) < 0.2)
+    )
+    speed_gate_mask = (
+        df.get("v_mps", pd.Series([0.0] * len(df)))
+        > 0.5 * df.get("limit_mps", pd.Series([0.0] * len(df)))
+    )
+    grid_alarm_mask = grid_crit_mask & speed_gate_mask
+
+    critical_alarm_count = _rising_edge_count(soc_crit_mask) + _rising_edge_count(grid_alarm_mask)
+
+    if (
+        mode == "hess"
+        and baseline_grid_kwh is not None
+        and distance_from_timeline_km > 0.0
+    ):
+        savings_per_km = (baseline_grid_kwh - grid_energy_kwh) / distance_from_timeline_km
+    else:
+        savings_per_km = None
+
     return {
         "run_id": run_id,
         "distance_km": round(distance_km, 3),
@@ -591,6 +687,14 @@ def compute_kpi(df: pd.DataFrame, run_id: str, total_distance_m: float) -> dict:
         # HESS metrics
         "regen_captured_kwh": round(regen_captured_kwh, 3),
         "regen_lost_kwh": round(regen_lost_kwh, 3),
+        # additional metrics
+        "energyIntensity_kwh_per_train_km": round(energy_intensity, 6),
+        "peakToAveragePowerRatio": round(peak_to_avg, 6),
+        "voltageViolationDuration_s": round(voltage_violation_s, 6),
+        "criticalAlarmCount": int(critical_alarm_count),
+        "savingsPerTrainKm_kwh_per_km": (
+            round(float(savings_per_km), 6) if savings_per_km is not None else None
+        ),
     }
 
 
@@ -634,30 +738,77 @@ def parse_args() -> argparse.Namespace:
         default=repo_root / "simulator" / "outputs",
         help="Output directory.",
     )
+    p.add_argument(
+        "--baseline-run-id",
+        type=str,
+        default="MR90_baseline",
+        help="Baseline run ID used to compute savingsPerTrainKm_kwh_per_km for HESS runs.",
+    )
+    p.add_argument(
+        "--overrides",
+        type=Path,
+        default=None,
+        help="Path to partial JSON overrides merged onto the base config.",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config, args.overrides)
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(f"[run_sim] error: {exc}") from exc
+
     train, corridor, hess, sim = build_params(cfg, args.mode, args.run_id, args.dt)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     df = build_timeline(train, corridor, hess, sim)
     total_d = df.attrs.get("total_distance_m", sum(corridor.segments_m))
-    kpi = compute_kpi(df, sim.run_id, total_d)
+
+    grid_sag_limit_w = None
+    hess_cfg = cfg.get("hess", {})
+    grid_cfg = hess_cfg.get("grid", {}) if isinstance(hess_cfg, dict) else {}
+    if isinstance(grid_cfg, dict):
+        sag_kw = grid_cfg.get("sag_max_power_kw")
+        if sag_kw is not None:
+            grid_sag_limit_w = float(sag_kw) * 1000.0
+
+    baseline_grid_kwh = None
+    if args.mode == "hess":
+        baseline_kpi_path = args.out_dir / f"kpi_{args.baseline_run_id}.json"
+        if baseline_kpi_path.exists():
+            try:
+                with baseline_kpi_path.open("r", encoding="utf-8") as f:
+                    baseline_kpi = json.load(f)
+                baseline_grid_kwh = float(baseline_kpi["grid_energy_kwh"])
+            except (KeyError, ValueError, TypeError, json.JSONDecodeError):
+                baseline_grid_kwh = None
+
+    kpi = compute_kpi(
+        df=df,
+        run_id=sim.run_id,
+        total_distance_m=total_d,
+        mode=args.mode,
+        grid_sag_limit_w=grid_sag_limit_w,
+        baseline_grid_kwh=baseline_grid_kwh,
+    )
 
     timeline_path = args.out_dir / f"timeline_{sim.run_id}.csv"
     kpi_path = args.out_dir / f"kpi_{sim.run_id}.json"
+    cfg_path = args.out_dir / f"config_{sim.run_id}.json"
 
     df.to_csv(timeline_path, index=False)
     with kpi_path.open("w", encoding="utf-8") as f:
         json.dump(kpi, f, indent=2)
+    with cfg_path.open("w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
 
     print(f"[run_sim] wrote timeline: {timeline_path}")
     print(f"[run_sim] wrote kpi:      {kpi_path}")
+    print(f"[run_sim] wrote config:   {cfg_path}")
     print(f"[run_sim] kpi: {kpi}")
 
 

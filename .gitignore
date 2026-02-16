@@ -70,3 +70,9 @@ Thumbs.db
 # -----------------------------
 *.log
 logs/
+
+# -----------------------------
+# Agent context and rule files
+# -----------------------------
+AGENTS.md
+docs/CONTEXT_*.md

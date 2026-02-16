@@ -1,0 +1,14 @@
+{
+  "corridor": {
+    "dwell_s": 25.0
+  },
+  "hess": {
+    "battery": {
+      "initial_soc": 0.7,
+      "max_power_kw": 900.0
+    },
+    "supercap": {
+      "startup_assist_secs": 7.0
+    }
+  }
+}

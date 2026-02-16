@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import csv
 import json
+import re
+import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from flask import Flask, jsonify, make_response
+from flask import Flask, jsonify, make_response, request, send_from_directory
 
 # ---------------------------------------------------------------------------
 # Paths / constants
@@ -20,6 +23,11 @@ REPO_ROOT = THIS_FILE.parents[1]
 
 # Simulator outputs: simulator/outputs/timeline_<runId>.csv, kpi_<runId>.json
 SIM_OUTPUT_DIR = REPO_ROOT / "simulator" / "outputs"
+SIM_RUNNER_PATH = REPO_ROOT / "simulator" / "src" / "run_sim.py"
+DEFAULT_BASE_CONFIG = REPO_ROOT / "config" / "mr90_default.json"
+RUN_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+DATA_LAYER_STATIC_DIR = REPO_ROOT / "data_layer" / "static"
+DASHBOARD_DIR = REPO_ROOT / "dashboard"
 
 # Default run for "Fetch Live" looping
 DEFAULT_LIVE_RUN_ID = "MR90_hess"
@@ -330,7 +338,7 @@ app = Flask(__name__)
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     return resp
 
@@ -338,6 +346,21 @@ def add_cors_headers(resp):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.route("/control", methods=["GET"])
+def control_page():
+    return send_from_directory(DATA_LAYER_STATIC_DIR, "control.html")
+
+
+@app.route("/dashboard/", methods=["GET"])
+def dashboard_index():
+    return send_from_directory(DASHBOARD_DIR, "index.html")
+
+
+@app.route("/dashboard/<path:filename>", methods=["GET"])
+def dashboard_static(filename: str):
+    return send_from_directory(DASHBOARD_DIR, filename)
 
 
 # ---------------------------------------------------------------------------
@@ -584,6 +607,117 @@ def api_runs(run_id: str):
 
 
 # ---------------------------------------------------------------------------
+# Trigger simulator run: /api/sim/run
+# ---------------------------------------------------------------------------
+
+@app.route("/api/sim/run", methods=["POST"])
+def api_sim_run():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return make_response(jsonify({"error": "Invalid JSON payload"}), 400)
+
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        return make_response(jsonify({"error": "run_id is required"}), 400)
+    if not RUN_ID_RE.fullmatch(run_id):
+        return make_response(
+            jsonify({"error": "run_id must use only letters, digits, underscore, dash"}),
+            400,
+        )
+
+    mode = payload.get("mode", "hess")
+    if mode not in {"baseline", "hess"}:
+        return make_response(jsonify({"error": "mode must be baseline or hess"}), 400)
+
+    base_config_raw = payload.get("base_config")
+    if base_config_raw is None:
+        base_config_path = DEFAULT_BASE_CONFIG
+    elif isinstance(base_config_raw, str) and base_config_raw.strip():
+        p = Path(base_config_raw)
+        base_config_path = p if p.is_absolute() else (REPO_ROOT / p)
+    else:
+        return make_response(jsonify({"error": "base_config must be a string path"}), 400)
+
+    overrides = payload.get("overrides", None)
+    overrides_path: Optional[Path] = None
+    if overrides is not None:
+        if not isinstance(overrides, dict):
+            return make_response(jsonify({"error": "overrides must be a JSON object"}), 400)
+        SIM_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        overrides_path = SIM_OUTPUT_DIR / f"overrides_{run_id}.json"
+        with overrides_path.open("w", encoding="utf-8") as f:
+            json.dump(overrides, f, indent=2)
+
+    cmd = [
+        sys.executable,
+        str(SIM_RUNNER_PATH),
+        "--mode",
+        mode,
+        "--run-id",
+        run_id,
+        "--config",
+        str(base_config_path),
+    ]
+    if overrides_path is not None:
+        cmd.extend(["--overrides", str(overrides_path)])
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as e:
+        return make_response(
+            jsonify(
+                {
+                    "error": "Simulator run timed out after 60 seconds",
+                    "stdout": e.stdout or "",
+                    "stderr": e.stderr or "",
+                }
+            ),
+            500,
+        )
+    except Exception as e:
+        return make_response(jsonify({"error": f"Failed to start simulator: {e}"}), 500)
+
+    timeline_path = SIM_OUTPUT_DIR / f"timeline_{run_id}.csv"
+    kpi_path = SIM_OUTPUT_DIR / f"kpi_{run_id}.json"
+    config_path = SIM_OUTPUT_DIR / f"config_{run_id}.json"
+
+    if proc.returncode != 0:
+        return make_response(
+            jsonify(
+                {
+                    "error": f"Simulator failed with exit code {proc.returncode}",
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                }
+            ),
+            500,
+        )
+
+    return jsonify(
+        {
+            "status": "ok",
+            "run_id": run_id,
+            "mode": mode,
+            "artifacts": {
+                "timeline": str(timeline_path),
+                "kpi": str(kpi_path),
+                "config": str(config_path),
+                "overrides": str(overrides_path) if overrides_path else None,
+            },
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
 # Live snapshot: /api/snapshot
 # ---------------------------------------------------------------------------
 
@@ -627,7 +761,7 @@ def api_snapshot():
     P_grid_pos = max(r.P_grid_w, 0.0)
     P_batt_pos = max(r.P_batt_w, 0.0)
     P_sc_pos = max(r.P_sc_w, 0.0)
-    total_pos = P_grid_pos + P_batt_pos + P_sc_w if False else P_grid_pos + P_batt_pos + P_sc_pos  # keep structure simple
+    total_pos = P_grid_pos + P_batt_pos + P_sc_pos
     if total_pos > 1e-6:
         grid_frac = P_grid_pos / total_pos
         storage_share = (P_batt_pos + P_sc_pos) / total_pos
