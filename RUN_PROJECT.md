@@ -2,7 +2,7 @@
 
 ## Scope
 This guide runs the current repo end to end from a clean clone on Windows PowerShell.
-It covers simulator outputs, optional EMS artifacts, API, and dashboard.
+It covers simulator outputs, optional EMS artifacts, API, control panel, and dashboard.
 
 ## 1. Open Terminal In Repo Root
 ```powershell
@@ -66,8 +66,22 @@ python ems\src\ems_main.py
 Expected output:
 - `bus\out\ems.command.v1.jsonl`
 
-## 8. Start API Server
-Run in a dedicated terminal with venv active:
+## 8. One Command Demo Start
+With venv active, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_demo.ps1
+```
+
+This starts Flask and opens:
+- `http://127.0.0.1:5000/control`
+
+From the control page:
+- Run baseline or hess without terminal commands
+- Open the dashboard at `/dashboard/`
+
+## 9. Manual API Start (Alternative)
+If you do not use the launcher, run:
 
 ```powershell
 python data_layer\api.py
@@ -80,9 +94,9 @@ Quick health check in another terminal:
 curl http://127.0.0.1:5000/api/health
 ```
 
-## 9. Open Dashboard
-Open this file in your browser:
-- `dashboard\index.html`
+## 10. Open Dashboard
+Open this URL in your browser:
+- `http://127.0.0.1:5000/dashboard/`
 
 In dashboard inputs:
 - `Data API base` = `http://127.0.0.1:5000/api`
@@ -93,8 +107,10 @@ Then use:
 - `Fetch Live` for `/api/snapshot`
 - `Fetch Run` for `/api/runs/<run_id>`
 
-## 10. Minimal End To End Verification
+## 11. Minimal End To End Verification
 1. Confirm simulator files exist in `simulator\outputs`.
 2. Confirm `GET /api/health` returns ok.
-3. In dashboard, `Fetch Live` updates KPI values from `empty`.
-4. In dashboard, `Fetch Run` loads timeline slider and map playback.
+3. Confirm `http://127.0.0.1:5000/control` loads and can run a simulation.
+4. Confirm `http://127.0.0.1:5000/dashboard/` loads.
+5. In dashboard, `Fetch Live` updates KPI values from `empty`.
+6. In dashboard, `Fetch Run` loads timeline slider and map playback.
