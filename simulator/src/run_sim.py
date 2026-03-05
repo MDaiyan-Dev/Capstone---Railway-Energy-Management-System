@@ -105,6 +105,9 @@ def default_config() -> Dict[str, Any]:
             },
             "grid": {"sag_max_power_kw": 1000.0},
         },
+        "pricing": {
+            "grid_price_per_kwh": 0.0,
+        },
     }
 
 
@@ -268,6 +271,102 @@ def segment_profile(L, vmax, a_acc, a_brk, dt_target):
         return t_seg, x_seg, v_seg, phase
 
 
+def build_segment_with_power_cap(
+    L: float,
+    vmax: float,
+    train: TrainParams,
+    dt_target: float,
+):
+    """
+    Numerically integrate one segment with traction power cap enforcement.
+    """
+    eps_v = 1e-3
+    max_steps = max(200, int(math.ceil((L / max(vmax, 0.1)) / max(dt_target, 1e-3))) * 20)
+
+    t_vals = [0.0]
+    x_vals = [0.0]
+    v_vals = [0.0]
+    phases = ["ACCEL"]
+
+    t = 0.0
+    x = 0.0
+    v = 0.0
+
+    for _ in range(max_steps):
+        remaining_d = L - x
+        if remaining_d <= 1e-6 and v <= 1e-3:
+            break
+
+        dt_i = dt_target
+        if v > 0.0:
+            t_stop = v / train.a_brk_mps2
+            if t_stop < dt_i:
+                dt_i = t_stop
+        dt_i = max(dt_i, 1e-4)
+
+        d_brake_req = (v * v) / (2.0 * train.a_brk_mps2) if train.a_brk_mps2 > 0 else float("inf")
+        brake_trigger = max(v, 1.0) * dt_target
+        should_brake = remaining_d <= (d_brake_req + brake_trigger)
+
+        if should_brake and v > 0.0:
+            phase_i = "BRAKE"
+            a_cmd = -train.a_brk_mps2
+        else:
+            if v >= (vmax - 1e-6):
+                phase_i = "CRUISE"
+                a_cmd = 0.0
+            else:
+                phase_i = "ACCEL"
+                f_res = float(davis_force(np.array([v]), train.davis_A, train.davis_B, train.davis_C)[0])
+                if v <= 1e-9:
+                    f_res *= 0.0
+
+                # Traction acceleration is bounded by nominal accel, force cap, and motor power cap.
+                a_force_cap = max((train.F_max_n - f_res) / train.mass_kg, 0.0)
+                a_power_cap = max((train.P_max_w / max(v, eps_v) - f_res) / train.mass_kg, 0.0)
+                a_cmd = min(train.a_acc_mps2, a_force_cap, a_power_cap)
+
+        if a_cmd > 0.0:
+            a_cmd = min(a_cmd, (vmax - v) / dt_i)
+            a_cmd = max(a_cmd, 0.0)
+            # Tighten cap using end-of-step speed so commanded traction stays under P_max_w.
+            for _ in range(3):
+                v_eval = min(v + a_cmd * dt_i, vmax)
+                f_eval = float(davis_force(np.array([v_eval]), train.davis_A, train.davis_B, train.davis_C)[0])
+                p_eval = (train.mass_kg * a_cmd + f_eval) * v_eval
+                if p_eval <= train.P_max_w + 1e-6:
+                    break
+                a_cmd = max((train.P_max_w / max(v_eval, eps_v) - f_eval) / train.mass_kg, 0.0)
+
+        v_next = v + a_cmd * dt_i
+        v_next = float(np.clip(v_next, 0.0, vmax))
+        x_next = x + 0.5 * (v + v_next) * dt_i
+        t_next = t + dt_i
+
+        if x_next >= L and v_next <= 1e-3:
+            x_next = L
+
+        t_vals.append(t_next)
+        x_vals.append(x_next)
+        v_vals.append(v_next)
+        phases.append(phase_i)
+
+        t, x, v = t_next, x_next, v_next
+
+    if x_vals[-1] < L - 1e-3:
+        x_vals[-1] = L
+    if v_vals[-1] > 1e-3:
+        v_vals[-1] = 0.0
+        phases[-1] = "BRAKE"
+
+    return (
+        np.array(t_vals, dtype=float),
+        np.array(x_vals, dtype=float),
+        np.array(v_vals, dtype=float),
+        phases,
+    )
+
+
 # ---------------- HESS logic (in-loop) ----------------
 
 
@@ -425,16 +524,21 @@ def build_timeline(
     prev_event = "DWELL"
 
     for seg_i, (L, vmax) in enumerate(zip(segments_m, speed_limits)):
-        t_seg, x_seg, v_seg, phase = segment_profile(
-            L, vmax, train.a_acc_mps2, train.a_brk_mps2, dt_target
+        t_seg, x_seg, v_seg, phase = build_segment_with_power_cap(
+            L=L,
+            vmax=vmax,
+            train=train,
+            dt_target=dt_target,
         )
 
         t_glob = t0 + t_seg
         x_glob = x0 + x_seg
 
-        a_seg = np.diff(v_seg, prepend=v_seg[0]) / np.diff(
-            t_seg, prepend=dt_target
-        )
+        dt_seg = np.diff(t_seg, prepend=t_seg[0])
+        dv_seg = np.diff(v_seg, prepend=v_seg[0])
+        a_seg = np.zeros_like(v_seg)
+        valid_dt = dt_seg > 1e-9
+        a_seg[valid_dt] = dv_seg[valid_dt] / dt_seg[valid_dt]
 
         F_res = davis_force(
             v_seg, train.davis_A, train.davis_B, train.davis_C
@@ -603,6 +707,7 @@ def compute_kpi(
     mode: str,
     grid_sag_limit_w: Optional[float],
     baseline_grid_kwh: Optional[float],
+    grid_price_per_kwh: float,
 ) -> dict:
     distance_km = total_distance_m / 1000.0
 
@@ -673,6 +778,18 @@ def compute_kpi(
     else:
         savings_per_km = None
 
+    grid_cost_total = grid_energy_kwh * grid_price_per_kwh
+    grid_cost_per_km = (grid_cost_total / distance_km) if distance_km > 0.0 else 0.0
+
+    if mode == "hess" and baseline_grid_kwh is not None:
+        grid_savings_total = (baseline_grid_kwh - grid_energy_kwh) * grid_price_per_kwh
+        grid_savings_per_km = (
+            (grid_savings_total / distance_km) if distance_km > 0.0 else 0.0
+        )
+    else:
+        grid_savings_total = None
+        grid_savings_per_km = None
+
     return {
         "run_id": run_id,
         "distance_km": round(distance_km, 3),
@@ -694,6 +811,14 @@ def compute_kpi(
         "criticalAlarmCount": int(critical_alarm_count),
         "savingsPerTrainKm_kwh_per_km": (
             round(float(savings_per_km), 6) if savings_per_km is not None else None
+        ),
+        "gridEnergyCost_total": round(grid_cost_total, 6),
+        "gridEnergyCost_per_train_km": round(grid_cost_per_km, 6),
+        "gridEnergySavings_total_vs_baseline": (
+            round(float(grid_savings_total), 6) if grid_savings_total is not None else None
+        ),
+        "gridEnergySavings_per_train_km_vs_baseline": (
+            round(float(grid_savings_per_km), 6) if grid_savings_per_km is not None else None
         ),
     }
 
@@ -787,6 +912,12 @@ def main() -> None:
             except (KeyError, ValueError, TypeError, json.JSONDecodeError):
                 baseline_grid_kwh = None
 
+    pricing_cfg = cfg.get("pricing", {})
+    if isinstance(pricing_cfg, dict):
+        grid_price_per_kwh = float(pricing_cfg.get("grid_price_per_kwh", 0.0))
+    else:
+        grid_price_per_kwh = 0.0
+
     kpi = compute_kpi(
         df=df,
         run_id=sim.run_id,
@@ -794,6 +925,7 @@ def main() -> None:
         mode=args.mode,
         grid_sag_limit_w=grid_sag_limit_w,
         baseline_grid_kwh=baseline_grid_kwh,
+        grid_price_per_kwh=grid_price_per_kwh,
     )
 
     timeline_path = args.out_dir / f"timeline_{sim.run_id}.csv"

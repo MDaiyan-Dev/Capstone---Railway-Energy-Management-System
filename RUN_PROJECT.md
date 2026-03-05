@@ -40,6 +40,11 @@ Expected outputs:
 python make_plots.py
 ```
 
+Traction-load light export:
+```powershell
+python scripts/export_traction_load_light.py --run-ids MR90_baseline MR90_hess
+```
+
 Expected outputs in `simulator\outputs`:
 - `fig1_grid_energy.png`
 - `fig2_regen_stacked.png`

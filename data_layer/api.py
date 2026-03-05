@@ -431,6 +431,7 @@ def api_replay_meta():
 
 def build_run_payload(run_id: str) -> dict:
     rows = load_timeline(run_id)
+    kpi_summary = load_kpi(run_id)
     stops = derive_stop_events(rows)
 
     duration_s = rows[-1].t_s
@@ -588,6 +589,7 @@ def build_run_payload(run_id: str) -> dict:
             "runId": run_id,
             "scenario": f"{run_id}",
             "simulated": True,
+            "kpiSummary": kpi_summary,
         },
         "timeline": {
             "durationSec": duration_s,
@@ -726,6 +728,7 @@ def api_snapshot():
     run_id = DEFAULT_LIVE_RUN_ID
     try:
         rows = load_timeline(run_id)
+        kpi_summary = load_kpi(run_id)
         stops = derive_stop_events(rows)
     except (FileNotFoundError, RuntimeError) as e:
         return make_response(jsonify({"error": str(e)}), 500)
@@ -858,6 +861,7 @@ def api_snapshot():
 
     payload = {
         "kpi": kpi_live,
+        "kpiSummary": kpi_summary,
         "tiles": tiles,
         "status": {"assets": assets},
         "events": recent_events,
