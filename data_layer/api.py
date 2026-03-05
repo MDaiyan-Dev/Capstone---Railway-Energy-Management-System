@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -346,6 +347,47 @@ def add_cors_headers(resp):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.route("/api/config/default", methods=["GET"])
+def api_config_default():
+    if not DEFAULT_BASE_CONFIG.exists():
+        return make_response(
+            jsonify({"error": f"Default config not found at {DEFAULT_BASE_CONFIG}"}),
+            500,
+        )
+    try:
+        with DEFAULT_BASE_CONFIG.open("r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        return make_response(jsonify({"error": f"Failed to load default config: {e}"}), 500)
+
+    if not isinstance(cfg, dict):
+        return make_response(jsonify({"error": "Default config must be a JSON object"}), 500)
+
+    # Ensure expected top-level sections exist for control UI.
+    if "train" not in cfg:
+        cfg["train"] = {}
+    if "corridor" not in cfg:
+        cfg["corridor"] = {}
+    if "hess" not in cfg:
+        cfg["hess"] = {}
+    if "pricing" not in cfg:
+        cfg["pricing"] = {"grid_price_per_kwh": 0.0}
+
+    return jsonify(cfg)
+
+
+@app.route("/api/runs/list", methods=["GET"])
+def api_runs_list():
+    runs: List[Dict[str, str]] = []
+    for p in SIM_OUTPUT_DIR.glob("timeline_*.csv"):
+        run_id = p.stem.removeprefix("timeline_")
+        mtime = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat()
+        runs.append({"run_id": run_id, "mtime_iso": mtime})
+
+    runs.sort(key=lambda r: r["mtime_iso"], reverse=True)
+    return jsonify(runs)
 
 
 @app.route("/control", methods=["GET"])

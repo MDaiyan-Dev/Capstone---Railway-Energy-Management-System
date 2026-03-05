@@ -5,224 +5,471 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>REMS Control Panel</title>
   <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      background: #f4f6fa;
-      color: #1e293b;
-    }
-    .wrap {
-      max-width: 960px;
-      margin: 32px auto;
-      padding: 0 16px;
-    }
-    .card {
-      background: #ffffff;
-      border: 1px solid #dbe1ea;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-    }
-    h1 {
-      margin: 0 0 16px 0;
-      font-size: 1.4rem;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .full {
-      grid-column: 1 / -1;
-    }
-    label {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-    input, select, textarea, button {
-      font: inherit;
-    }
-    input, select, textarea {
-      border: 1px solid #c7d0dc;
-      border-radius: 8px;
-      padding: 10px;
-      background: #fff;
-    }
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 0.9rem;
-      line-height: 1.3;
-    }
-    .actions {
-      margin-top: 14px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    button {
-      background: #0f4c81;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-    }
-    button:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
-    a {
-      color: #0f4c81;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .error {
-      margin-top: 10px;
-      color: #b00020;
-      font-weight: 600;
-      min-height: 1.2em;
-    }
-    .meta {
-      margin-top: 12px;
-      font-size: 0.95rem;
-      color: #334155;
-    }
-    pre {
-      margin-top: 12px;
-      background: #0b1020;
-      color: #d8e1ff;
-      border-radius: 8px;
-      padding: 12px;
-      overflow: auto;
-      max-height: 380px;
-      border: 1px solid #1e2a4a;
-    }
-    @media (max-width: 760px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
+    :root { --bg:#f4f6f8; --surface:#fff; --text:#152033; --muted:#5a6b85; --line:#d8e0eb; --line-strong:#c2cedf; --brand:#0f5ec6; --brand-strong:#0a49a1; --danger:#b4232a; --success-bg:#e8f8ef; --success-text:#0a6a33; --error-bg:#fdecec; --error-text:#9a1f24; --shadow:0 6px 20px rgba(19,35,62,.08); --radius:12px; }
+    *{box-sizing:border-box} body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);color:var(--text)}
+    .container{max-width:1160px;margin:28px auto 48px;padding:0 16px}
+    .page-header{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+    h1{margin:0;font-size:1.75rem;line-height:1.2}.subtitle{margin:8px 0 0;color:var(--muted);font-size:.98rem}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid transparent;border-radius:10px;padding:10px 14px;font-size:.95rem;font-weight:600;text-decoration:none;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center}
+    .btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(15,94,198,.24);outline-offset:1px}
+    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}.btn-primary:hover{background:var(--brand-strong);border-color:var(--brand-strong)}
+    .btn-secondary{background:#fff;color:var(--text);border-color:var(--line-strong)}.btn-secondary:hover{background:#f2f6fb;border-color:#aebcd1}
+    .btn-danger{background:#fff;color:var(--danger);border-color:#e0b8bc}.btn:disabled{opacity:.55;cursor:not-allowed}
+    .banner{border-radius:10px;border:1px solid transparent;padding:12px 14px;margin-bottom:12px;display:none}.banner.show{display:block}
+    .banner-success{background:var(--success-bg);border-color:#b5e6c9;color:var(--success-text)}.banner-error{background:var(--error-bg);border-color:#f3c2c4;color:var(--error-text)}
+    .banner-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+    .card-head{padding:14px 16px;border-bottom:1px solid var(--line);background:#fafcff;font-size:1rem;font-weight:700}.card-body{padding:14px 16px 18px}
+    .grid-4{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}.grid-3{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.grid-2{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .field{display:flex;flex-direction:column;gap:6px}.field label{font-size:.85rem;color:var(--muted);font-weight:600}
+    input,select{height:38px;border:1px solid var(--line-strong);border-radius:10px;background:#fff;padding:8px 10px;color:var(--text);font-size:.95rem}
+    .field-error{color:var(--danger);font-size:.8rem;min-height:1em}
+    .table-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:8px}
+    table{width:100%;border-collapse:collapse;background:#fff} th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:middle;font-size:.9rem}
+    th{background:#f7faff;color:#30415d;font-weight:700} tr:last-child td{border-bottom:none}
+    .row-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
+    .inline-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.status-muted{color:var(--muted);font-size:.9rem}
+    details{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#f8fbff;padding:8px 10px}
+    summary{cursor:pointer;font-weight:700;color:#2a3f60}
+    pre{margin:10px 0 0;padding:10px;border-radius:8px;background:#0f172a;color:#d8e3ff;overflow:auto;max-height:280px;font-family:Consolas,"Courier New",monospace;font-size:.83rem}
+    @media (max-width:1020px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:700px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.page-header{padding:16px}.card-body{padding:12px}.btn{width:100%}.header-actions{width:100%}}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>REMS Demo Control Panel</h1>
-      <div class="grid">
-        <div class="field">
-          <label for="runId">run_id</label>
-          <input id="runId" placeholder="demo_hess_01" value="demo_hess_01">
-        </div>
-        <div class="field">
-          <label for="mode">mode</label>
-          <select id="mode">
-            <option value="hess" selected>hess</option>
-            <option value="baseline">baseline</option>
-          </select>
-        </div>
-        <div class="field full">
-          <label for="overrides">overrides JSON (optional)</label>
-          <textarea id="overrides" placeholder='{"corridor":{"dwell_s":22.0}}'></textarea>
-        </div>
+  <div class="container">
+    <header class="page-header">
+      <div>
+        <h1>REMS Control Panel</h1>
+        <p class="subtitle">Create and run scenarios, then view results in the dashboard.</p>
       </div>
-      <div class="actions">
-        <button id="runBtn">Run Simulation</button>
-        <a href="/dashboard/">Open Dashboard</a>
+      <div class="header-actions">
+        <button id="runBtnTop" class="btn btn-primary" type="button">Run Simulation</button>
+        <a class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
       </div>
-      <div id="status" class="meta">Ready.</div>
-      <div id="error" class="error"></div>
-      <pre id="output">{}</pre>
+    </header>
+
+    <div id="successBanner" class="banner banner-success">
+      <div id="successText"></div>
+      <div class="banner-actions">
+        <a id="openRunJsonBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener">Open Run Replay JSON</a>
+        <a class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
+      </div>
     </div>
+
+    <div id="errorBanner" class="banner banner-error"></div>
+
+    <section class="card">
+      <div class="card-head">Run Settings</div>
+      <div class="card-body">
+        <div class="grid-4">
+          <div class="field">
+            <label for="runId">Run ID</label>
+            <input id="runId" type="text" autocomplete="off">
+            <div id="err-run_id" class="field-error"></div>
+          </div>
+          <div class="field">
+            <label for="mode">Mode</label>
+            <select id="mode"><option value="baseline">baseline</option><option value="hess">hess</option></select>
+            <div class="field-error"></div>
+          </div>
+          <div class="field">
+            <label for="pricePerKwh">Price per kWh</label>
+            <input id="pricePerKwh" type="number" step="0.0001" min="0">
+            <div id="err-pricing.grid_price_per_kwh" class="field-error"></div>
+          </div>
+          <div class="field">
+            <label for="recentRuns">Recent Runs</label>
+            <div class="inline-row">
+              <select id="recentRuns"></select>
+              <button id="openRecentRunBtn" class="btn btn-secondary" type="button">Open Run</button>
+            </div>
+            <div id="recentRunsInfo" class="status-muted"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">Train Parameters</div>
+      <div class="card-body">
+        <div class="grid-4">
+          <div class="field"><label for="train_mass_kg">mass_kg</label><input id="train_mass_kg" type="number" data-path="train.mass_kg"><div id="err-train.mass_kg" class="field-error"></div></div>
+          <div class="field"><label for="train_a_acc">a_acc_mps2</label><input id="train_a_acc" type="number" data-path="train.a_acc_mps2"><div id="err-train.a_acc_mps2" class="field-error"></div></div>
+          <div class="field"><label for="train_a_brk">a_brk_mps2</label><input id="train_a_brk" type="number" data-path="train.a_brk_mps2"><div id="err-train.a_brk_mps2" class="field-error"></div></div>
+          <div class="field"><label for="train_pmax">P_max_w</label><input id="train_pmax" type="number" data-path="train.P_max_w"><div id="err-train.P_max_w" class="field-error"></div></div>
+          <div class="field"><label for="train_fmax">F_max_n</label><input id="train_fmax" type="number" data-path="train.F_max_n"><div id="err-train.F_max_n" class="field-error"></div></div>
+          <div class="field"><label for="train_fbrk">F_brk_max_n</label><input id="train_fbrk" type="number" data-path="train.F_brk_max_n"><div id="err-train.F_brk_max_n" class="field-error"></div></div>
+          <div class="field"><label for="train_regen_eff">regen_eff</label><input id="train_regen_eff" type="number" step="0.0001" min="0" max="1" data-path="train.regen_eff"><div id="err-train.regen_eff" class="field-error"></div></div>
+        </div>
+        <div class="grid-3" style="margin-top:10px;">
+          <div class="field"><label for="train_davis_a">davis.A</label><input id="train_davis_a" type="number" data-path="train.davis.A"><div id="err-train.davis.A" class="field-error"></div></div>
+          <div class="field"><label for="train_davis_b">davis.B</label><input id="train_davis_b" type="number" data-path="train.davis.B"><div id="err-train.davis.B" class="field-error"></div></div>
+          <div class="field"><label for="train_davis_c">davis.C</label><input id="train_davis_c" type="number" data-path="train.davis.C"><div id="err-train.davis.C" class="field-error"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">Corridor Parameters</div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field"><label for="corridor_dwell_s">dwell_s</label><input id="corridor_dwell_s" type="number" data-path="corridor.dwell_s"><div id="err-corridor.dwell_s" class="field-error"></div></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:70px;">Row</th><th>segments_m</th><th>speed_limits_mps</th><th style="width:110px;">Actions</th></tr></thead>
+            <tbody id="corridorTableBody"></tbody>
+          </table>
+        </div>
+        <div class="row-actions"><button id="addCorridorRowBtn" class="btn btn-secondary" type="button">Add Row</button></div>
+        <div id="err-corridor.rows" class="field-error"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">HESS Parameters</div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="field"><label for="batt_capacity_kwh">battery.capacity_kwh</label><input id="batt_capacity_kwh" type="number" data-path="hess.battery.capacity_kwh"><div id="err-hess.battery.capacity_kwh" class="field-error"></div></div>
+          <div class="field"><label for="batt_initial_soc">battery.initial_soc</label><input id="batt_initial_soc" type="number" step="0.0001" min="0" max="1" data-path="hess.battery.initial_soc"><div id="err-hess.battery.initial_soc" class="field-error"></div></div>
+          <div class="field"><label for="batt_max_power_kw">battery.max_power_kw</label><input id="batt_max_power_kw" type="number" data-path="hess.battery.max_power_kw"><div id="err-hess.battery.max_power_kw" class="field-error"></div></div>
+          <div class="field"><label for="sc_capacity_kwh">supercap.capacity_kwh</label><input id="sc_capacity_kwh" type="number" data-path="hess.supercap.capacity_kwh"><div id="err-hess.supercap.capacity_kwh" class="field-error"></div></div>
+          <div class="field"><label for="sc_initial_energy_kwh">supercap.initial_energy_kwh</label><input id="sc_initial_energy_kwh" type="number" data-path="hess.supercap.initial_energy_kwh"><div id="err-hess.supercap.initial_energy_kwh" class="field-error"></div></div>
+          <div class="field"><label for="sc_max_power_kw">supercap.max_power_kw</label><input id="sc_max_power_kw" type="number" data-path="hess.supercap.max_power_kw"><div id="err-hess.supercap.max_power_kw" class="field-error"></div></div>
+          <div class="field"><label for="sc_startup_assist_secs">supercap.startup_assist_secs</label><input id="sc_startup_assist_secs" type="number" data-path="hess.supercap.startup_assist_secs"><div id="err-hess.supercap.startup_assist_secs" class="field-error"></div></div>
+          <div class="field"><label for="grid_sag_max_power_kw">grid.sag_max_power_kw</label><input id="grid_sag_max_power_kw" type="number" data-path="hess.grid.sag_max_power_kw"><div id="err-hess.grid.sag_max_power_kw" class="field-error"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <details id="detailsBlock"><summary>Details</summary><pre id="detailsPre">{}</pre></details>
   </div>
-
   <script>
-    const runBtn = document.getElementById('runBtn');
-    const runIdInput = document.getElementById('runId');
-    const modeInput = document.getElementById('mode');
-    const overridesInput = document.getElementById('overrides');
-    const outputPre = document.getElementById('output');
-    const statusEl = document.getElementById('status');
-    const errorEl = document.getElementById('error');
     const runIdRe = /^[A-Za-z0-9_-]+$/;
+    const state = { baseConfig: null, workingConfig: null, busy: false, priceEdited: false, validationErrors: {} };
 
-    function showError(msg) {
-      errorEl.textContent = msg || '';
+    const runBtnTop = document.getElementById("runBtnTop");
+    const runIdInput = document.getElementById("runId");
+    const modeInput = document.getElementById("mode");
+    const priceInput = document.getElementById("pricePerKwh");
+    const recentRunsSelect = document.getElementById("recentRuns");
+    const openRecentRunBtn = document.getElementById("openRecentRunBtn");
+    const recentRunsInfo = document.getElementById("recentRunsInfo");
+    const addCorridorRowBtn = document.getElementById("addCorridorRowBtn");
+    const corridorTableBody = document.getElementById("corridorTableBody");
+    const successBanner = document.getElementById("successBanner");
+    const successText = document.getElementById("successText");
+    const errorBanner = document.getElementById("errorBanner");
+    const openRunJsonBtn = document.getElementById("openRunJsonBtn");
+    const detailsPre = document.getElementById("detailsPre");
+    const detailsBlock = document.getElementById("detailsBlock");
+    const numericInputs = Array.from(document.querySelectorAll("input[data-path]"));
+
+    const deepClone = (v) => JSON.parse(JSON.stringify(v));
+    const isFiniteNumber = (v) => typeof v === "number" && Number.isFinite(v);
+
+    function getByPath(obj, path) {
+      return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+    }
+    function setByPath(obj, path, value) {
+      const parts = path.split(".");
+      let ref = obj;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        if (!Object.prototype.hasOwnProperty.call(ref, parts[i]) || typeof ref[parts[i]] !== "object" || ref[parts[i]] === null) {
+          ref[parts[i]] = {};
+        }
+        ref = ref[parts[i]];
+      }
+      ref[parts[parts.length - 1]] = value;
     }
 
-    function setStatus(text) {
-      statusEl.textContent = text;
+    function showErrorBanner(msg) {
+      if (!msg) {
+        errorBanner.classList.remove("show");
+        errorBanner.textContent = "";
+        return;
+      }
+      errorBanner.textContent = msg;
+      errorBanner.classList.add("show");
+    }
+    function showSuccess(runId) {
+      successText.textContent = `Simulation completed for run_id: ${runId}`;
+      openRunJsonBtn.href = `/api/runs/${encodeURIComponent(runId)}`;
+      successBanner.classList.add("show");
+    }
+    function hideSuccess() {
+      successBanner.classList.remove("show");
+      successText.textContent = "";
+      openRunJsonBtn.href = "#";
+    }
+    function setDetails(obj) {
+      detailsPre.textContent = JSON.stringify(obj, null, 2);
+      detailsBlock.open = false;
+    }
+    function nowRunId() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `run_${y}${m}${day}_${hh}${mm}${ss}`;
     }
 
-    function setOutput(obj) {
-      outputPre.textContent = JSON.stringify(obj, null, 2);
+    function renderNumericInputs() {
+      numericInputs.forEach((el) => {
+        const path = el.getAttribute("data-path");
+        const value = getByPath(state.workingConfig, path);
+        el.value = isFiniteNumber(value) ? String(value) : "";
+      });
+      const priceValue = getByPath(state.workingConfig, "pricing.grid_price_per_kwh");
+      priceInput.value = isFiniteNumber(priceValue) ? String(priceValue) : "";
+    }
+
+    function setFieldError(key, message) {
+      const el = document.getElementById(`err-${key}`);
+      if (el) {
+        el.textContent = message || "";
+      }
+    }
+    function clearAllFieldErrors() {
+      document.querySelectorAll(".field-error").forEach((el) => { el.textContent = ""; });
+    }
+    function updateRunButtonState() {
+      const hasErrors = Object.keys(state.validationErrors).length > 0;
+      const disabled = state.busy || !state.workingConfig || hasErrors;
+      runBtnTop.disabled = disabled;
+    }
+
+    function renderCorridorTable() {
+      const corridor = state.workingConfig.corridor || {};
+      const seg = Array.isArray(corridor.segments_m) ? corridor.segments_m : [];
+      const lim = Array.isArray(corridor.speed_limits_mps) ? corridor.speed_limits_mps : [];
+      corridorTableBody.innerHTML = "";
+      const rows = Math.max(seg.length, lim.length);
+      for (let i = 0; i < rows; i += 1) {
+        const tr = document.createElement("tr");
+        const tdIndex = document.createElement("td");
+        tdIndex.textContent = String(i + 1);
+        tr.appendChild(tdIndex);
+
+        const tdSeg = document.createElement("td");
+        const segInput = document.createElement("input");
+        segInput.type = "number";
+        segInput.value = isFiniteNumber(seg[i]) ? String(seg[i]) : "";
+        segInput.addEventListener("input", () => { state.workingConfig.corridor.segments_m[i] = Number(segInput.value); validateAndRender(); });
+        tdSeg.appendChild(segInput);
+        tr.appendChild(tdSeg);
+
+        const tdSpeed = document.createElement("td");
+        const speedInput = document.createElement("input");
+        speedInput.type = "number";
+        speedInput.value = isFiniteNumber(lim[i]) ? String(lim[i]) : "";
+        speedInput.addEventListener("input", () => { state.workingConfig.corridor.speed_limits_mps[i] = Number(speedInput.value); validateAndRender(); });
+        tdSpeed.appendChild(speedInput);
+        tr.appendChild(tdSpeed);
+
+        const tdActions = document.createElement("td");
+        const rmBtn = document.createElement("button");
+        rmBtn.className = "btn btn-danger";
+        rmBtn.type = "button";
+        rmBtn.textContent = "Remove";
+        rmBtn.addEventListener("click", () => {
+          state.workingConfig.corridor.segments_m.splice(i, 1);
+          state.workingConfig.corridor.speed_limits_mps.splice(i, 1);
+          validateAndRender();
+        });
+        tdActions.appendChild(rmBtn);
+        tr.appendChild(tdActions);
+        corridorTableBody.appendChild(tr);
+      }
+    }
+
+    function validateWorkingState() {
+      const cfg = state.workingConfig;
+      const errors = {};
+      const runId = (runIdInput.value || "").trim();
+      if (!runId) errors.run_id = "run_id is required.";
+      else if (!runIdRe.test(runId)) errors.run_id = "Use letters, digits, underscore, or dash only.";
+
+      const addErrIf = (key, cond, msg) => { if (cond) errors[key] = msg; };
+      const checkFinite = (key) => addErrIf(key, !isFiniteNumber(getByPath(cfg, key)), "Enter a valid number.");
+      ["train.mass_kg","train.a_acc_mps2","train.a_brk_mps2","train.P_max_w","train.F_max_n","train.F_brk_max_n","train.regen_eff","train.davis.A","train.davis.B","train.davis.C","corridor.dwell_s","hess.battery.capacity_kwh","hess.battery.initial_soc","hess.battery.max_power_kw","hess.supercap.capacity_kwh","hess.supercap.initial_energy_kwh","hess.supercap.max_power_kw","hess.supercap.startup_assist_secs","hess.grid.sag_max_power_kw","pricing.grid_price_per_kwh"].forEach(checkFinite);
+
+      addErrIf("train.mass_kg", getByPath(cfg, "train.mass_kg") <= 0, "Must be > 0.");
+      addErrIf("train.a_acc_mps2", getByPath(cfg, "train.a_acc_mps2") < 0, "Must be >= 0.");
+      addErrIf("train.a_brk_mps2", getByPath(cfg, "train.a_brk_mps2") <= 0, "Must be > 0.");
+      addErrIf("train.P_max_w", getByPath(cfg, "train.P_max_w") <= 0, "Must be > 0.");
+      addErrIf("train.F_max_n", getByPath(cfg, "train.F_max_n") <= 0, "Must be > 0.");
+      addErrIf("train.F_brk_max_n", getByPath(cfg, "train.F_brk_max_n") <= 0, "Must be > 0.");
+      addErrIf("train.regen_eff", getByPath(cfg, "train.regen_eff") < 0 || getByPath(cfg, "train.regen_eff") > 1, "Must be between 0 and 1.");
+      addErrIf("hess.battery.initial_soc", getByPath(cfg, "hess.battery.initial_soc") < 0 || getByPath(cfg, "hess.battery.initial_soc") > 1, "Must be between 0 and 1.");
+      ["hess.battery.capacity_kwh","hess.battery.max_power_kw","hess.supercap.capacity_kwh","hess.supercap.initial_energy_kwh","hess.supercap.max_power_kw","hess.supercap.startup_assist_secs","hess.grid.sag_max_power_kw","pricing.grid_price_per_kwh"].forEach((k) => addErrIf(k, getByPath(cfg, k) < 0, "Must be >= 0."));
+
+      const segments = cfg.corridor && Array.isArray(cfg.corridor.segments_m) ? cfg.corridor.segments_m : [];
+      const limits = cfg.corridor && Array.isArray(cfg.corridor.speed_limits_mps) ? cfg.corridor.speed_limits_mps : [];
+      if (segments.length !== limits.length) errors["corridor.rows"] = "segments_m and speed_limits_mps must have the same number of rows.";
+      else if (segments.length === 0) errors["corridor.rows"] = "At least one corridor row is required.";
+      else {
+        for (let i = 0; i < segments.length; i += 1) {
+          if (!isFiniteNumber(segments[i]) || !isFiniteNumber(limits[i])) { errors["corridor.rows"] = "All corridor row values must be valid numbers."; break; }
+          if (segments[i] <= 0 || limits[i] <= 0) { errors["corridor.rows"] = "segments_m and speed_limits_mps values must be > 0."; break; }
+        }
+      }
+      return errors;
+    }
+
+    function renderValidation() {
+      clearAllFieldErrors();
+      Object.entries(state.validationErrors).forEach(([k, v]) => setFieldError(k, v));
+      updateRunButtonState();
+    }
+    function validateAndRender() {
+      state.validationErrors = validateWorkingState();
+      renderCorridorTable();
+      renderValidation();
+    }
+
+    function deepDiff(base, current) {
+      if (Array.isArray(base) && Array.isArray(current)) {
+        if (base.length !== current.length) return current;
+        for (let i = 0; i < base.length; i += 1) if (base[i] !== current[i]) return current;
+        return undefined;
+      }
+      if (base && current && typeof base === "object" && typeof current === "object" && !Array.isArray(base) && !Array.isArray(current)) {
+        const out = {};
+        Object.keys(current).forEach((key) => {
+          const d = deepDiff(base[key], current[key]);
+          if (d !== undefined) out[key] = d;
+        });
+        return Object.keys(out).length > 0 ? out : undefined;
+      }
+      return base !== current ? current : undefined;
+    }
+
+    async function fetchJson(url) {
+      const resp = await fetch(url);
+      const body = await resp.json();
+      if (!resp.ok) throw new Error(body && body.error ? body.error : `Request failed: ${url}`);
+      return body;
+    }
+
+    async function loadRecentRuns() {
+      try {
+        const runs = await fetchJson("/api/runs/list");
+        recentRunsSelect.innerHTML = "";
+        if (!Array.isArray(runs) || runs.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "No runs available";
+          recentRunsSelect.appendChild(opt);
+          openRecentRunBtn.disabled = true;
+          recentRunsInfo.textContent = "";
+          return;
+        }
+        runs.forEach((r) => {
+          const opt = document.createElement("option");
+          opt.value = r.run_id;
+          opt.textContent = `${r.run_id} (${r.mtime_iso})`;
+          recentRunsSelect.appendChild(opt);
+        });
+        openRecentRunBtn.disabled = false;
+        recentRunsInfo.textContent = `${runs.length} runs found`;
+      } catch (e) {
+        recentRunsInfo.textContent = `Failed to load runs: ${e.message}`;
+      }
+    }
+
+    async function loadDefaultConfig() {
+      const cfg = await fetchJson("/api/config/default");
+      if (!cfg.pricing || typeof cfg.pricing !== "object") cfg.pricing = {};
+      if (typeof cfg.pricing.grid_price_per_kwh !== "number") cfg.pricing.grid_price_per_kwh = 0.0;
+      state.baseConfig = deepClone(cfg);
+      state.workingConfig = deepClone(cfg);
+      state.priceEdited = false;
+      runIdInput.value = nowRunId();
+      modeInput.value = "hess";
+      renderNumericInputs();
+      validateAndRender();
     }
 
     async function runSimulation() {
-      showError('');
-      const runId = (runIdInput.value || '').trim();
-      const mode = modeInput.value;
-
-      if (!runId) {
-        showError('run_id is required.');
-        return;
-      }
-      if (!runIdRe.test(runId)) {
-        showError('run_id must use only letters, digits, underscore, dash.');
-        return;
-      }
-
-      const payload = { run_id: runId, mode: mode };
-      const rawOverrides = (overridesInput.value || '').trim();
-
-      if (rawOverrides) {
-        let parsed;
-        try {
-          parsed = JSON.parse(rawOverrides);
-        } catch (e) {
-          showError('Overrides JSON is invalid: ' + e.message);
-          return;
-        }
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-          showError('Overrides must be a JSON object.');
-          return;
-        }
-        payload.overrides = parsed;
-      }
-
-      runBtn.disabled = true;
-      setStatus('Running simulation for run_id: ' + runId + ' ...');
-
+      hideSuccess();
+      showErrorBanner("");
+      state.busy = true;
+      updateRunButtonState();
       try {
-        const resp = await fetch('/api/sim/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await resp.json();
-        setOutput(data);
-        if (!resp.ok) {
-          showError('Run failed. See response below.');
-          setStatus('Simulation failed for run_id: ' + runId);
-          return;
+        state.validationErrors = validateWorkingState();
+        renderValidation();
+        if (Object.keys(state.validationErrors).length > 0) throw new Error("Please fix validation errors before running.");
+        const runId = runIdInput.value.trim();
+        const mode = modeInput.value;
+        const overrides = deepDiff(state.baseConfig, state.workingConfig) || {};
+        if (state.priceEdited) {
+          if (!overrides.pricing || typeof overrides.pricing !== "object") overrides.pricing = {};
+          overrides.pricing.grid_price_per_kwh = getByPath(state.workingConfig, "pricing.grid_price_per_kwh");
         }
-        setStatus('Simulation completed for run_id: ' + runId);
+        const payload = { run_id: runId, mode, overrides };
+        const resp = await fetch("/api/sim/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const data = await resp.json();
+        setDetails(data);
+        if (!resp.ok) throw new Error(data && data.error ? data.error : "Simulation failed.");
+        showSuccess(runId);
+        await loadRecentRuns();
       } catch (e) {
-        showError('Request failed: ' + e.message);
-        setStatus('Request failed for run_id: ' + runId);
+        showErrorBanner(e.message || String(e));
       } finally {
-        runBtn.disabled = false;
+        state.busy = false;
+        updateRunButtonState();
       }
     }
 
-    runBtn.addEventListener('click', runSimulation);
+    function wireEvents() {
+      runBtnTop.addEventListener("click", runSimulation);
+      runIdInput.addEventListener("input", validateAndRender);
+      modeInput.addEventListener("change", validateAndRender);
+      priceInput.addEventListener("input", () => {
+        setByPath(state.workingConfig, "pricing.grid_price_per_kwh", Number(priceInput.value));
+        state.priceEdited = true;
+        validateAndRender();
+      });
+      numericInputs.forEach((el) => {
+        const path = el.getAttribute("data-path");
+        el.addEventListener("input", () => {
+          setByPath(state.workingConfig, path, Number(el.value));
+          validateAndRender();
+        });
+      });
+      addCorridorRowBtn.addEventListener("click", () => {
+        state.workingConfig.corridor.segments_m.push(1000.0);
+        state.workingConfig.corridor.speed_limits_mps.push(20.0);
+        validateAndRender();
+      });
+      openRecentRunBtn.addEventListener("click", () => {
+        const runId = recentRunsSelect.value;
+        if (!runId) return;
+        window.open(`/api/runs/${encodeURIComponent(runId)}`, "_blank", "noopener");
+      });
+    }
+
+    async function init() {
+      wireEvents();
+      hideSuccess();
+      showErrorBanner("");
+      setDetails({});
+      try {
+        await loadDefaultConfig();
+        await loadRecentRuns();
+      } catch (e) {
+        showErrorBanner(`Failed to initialize control panel: ${e.message}`);
+      }
+      updateRunButtonState();
+    }
+
+    init();
   </script>
 </body>
 </html>
