@@ -1,269 +1,308 @@
 # Capstone---Railway-Energy-Management-System
 
-This is our Capstone Project Repository
-It will be used for collaboration and storage of all relevant resources
+This is our Capstone Project Repository.
+It is used for collaboration and storage of relevant project resources.
 
-# 🚇 Railway Energy Management System - Capstone 2025–26
+# Railway Energy Management System - Capstone 2025-26
 
-**SOFE + ELEE Integrated Project — Ontario Tech University**
-**Modules:** Simulator • EMS • Data Layer • Dashboard
-
----
-
-## 📌 Overview
-
-This project implements a **small but realistic digital twin** of a metro corridor that supports energy-aware train operation, real-time telemetry, and an Energy Management System (EMS).
-The system is intentionally modular and mirrors real rail software architecture:
-
-* **Simulator** — deterministic 1D train dynamics with traction, braking, resistance, regeneration, and segment speed limits.
-* **EMS (Energy Management System)** — rule-based controller that reduces energy while maintaining schedule.
-* **Data Layer** — versioned JSON schemas + REST API wrapping telemetry.
-* **Dashboard** — web UI for live monitoring, KPI display, and replay.
-
-This repo contains all four modules and the file-bus interface used for integration.
+**SOFE + ELEE Integrated Project - Ontario Tech University**  
+**Modules:** Simulator - EMS - Data Layer - Dashboard
 
 ---
 
-## 🧱 Architecture
+## Overview
 
+This repository contains the current Semester 2 implementation of the Railway Energy Management System.
+The main delivered workflow is centered on a deterministic railway simulator, a Flask API layer, a browser-based control panel, and a dashboard replay interface.
+
+The current project supports:
+
+* configuration-driven baseline and HESS simulator runs
+* per-run timeline, KPI, and resolved-config artifacts
+* API-triggered runs from the control panel
+* replay and snapshot payloads for the dashboard
+* optional export scripts for report figures and load-profile CSVs
+
+The physical prototype is separate from this software workflow.
+This repository does not implement live hardware control of the simulator or dashboard.
+
+---
+
+## Current Architecture
+
+```text
++---------------------+         +----------------------+
+|   Simulator         |         |   Config + Overrides |
+|   run_sim.py        |<------->|   JSON input files   |
++----------+----------+         +----------------------+
+           |
+           | timeline_<run_id>.csv
+           | kpi_<run_id>.json
+           | config_<run_id>.json
+           v
++---------------------+         +----------------------+
+|   Flask API         |<------->|   Control Panel      |
+|   data_layer/api.py |         |   /control           |
++----------+----------+         +----------------------+
+           |
+           | /api/runs/<run_id>
+           | /api/snapshot
+           v
++---------------------+
+|   Dashboard         |
+|   /dashboard/       |
++---------------------+
 ```
-+-----------------+      JSONL Telemetry      +------------------+
-|   Simulator     |  ->  bus/in/*.jsonl  ->   |   Data Layer     |
-|  (Python)       |                           |   REST API       |
-+-----------------+                           +----------+-------+
-                ^                                        |
-                | EMS Commands (JSONL)                   |
-                | bus/out/ems.command.v1.jsonl           |
-+-----------------+                                      |
-|       EMS       |  <-----------------------------------+
-|  (Python)       |
-+-----------------+
-
-               +--------------------------------------------+
-               |                 Dashboard                   |
-               |     (HTML / CSS / JS — standalone)          |
-               +--------------------------------------------+
-```
 
 ---
 
-## 🚆 Simulator Module
+## Simulator Module
 
 **Directory:** `simulator/`
 
-Implements a deterministic point-mass 1D metro train with:
+The simulator entry point is:
 
-* Segment speed limits
-* Trapezoidal/triangular phase planning
-* Davis resistance
-* Traction and braking caps
-* Regeneration efficiency
-* Real-time (0.2–0.5s tick) and accelerated batch modes
-* Telemetry outputs:
+* `simulator/src/run_sim.py`
 
-  * `telemetry.train.state.v1.jsonl`
-  * `telemetry.energy.sample.v1.jsonl`
-  * `telemetry.event.stop.v1.jsonl`
+The default configuration file is:
 
-### Baseline Week 6 KPIs
+* `config/mr90_default.json`
 
-* Corridor length: **4.2 km**
-* Trip time: **328.44 s**
-* Traction energy: **16.567 kWh**
-* Regen energy: **5.294 kWh**
-* Energy intensity: **3.945 kWh/km**
+The simulator currently supports:
 
----
+* baseline mode
+* HESS mode
+* partial JSON overrides merged onto the base configuration
+* resolved per-run configuration export
+* deterministic timeline and KPI generation
+* motor power-cap enforcement through `train.P_max_w`
 
-## ⚡ EMS Module
+For each run, the simulator writes:
 
-**Directory:** `ems/`
+* `simulator/outputs/timeline_<run_id>.csv`
+* `simulator/outputs/kpi_<run_id>.json`
+* `simulator/outputs/config_<run_id>.json`
 
-Implements a **V1 EMS** that operates in batch/advisory mode over simulator telemetry:
+The KPI output includes:
 
-### Control Policies
-
-1. **eco_coast_1**
-   Reduce target speed to ~90% of limit between 30–50% of corridor.
-
-2. **catchup_cancel_coast**
-   If projected arrival time exceeds schedule by >5s, cancel coasting and return to limit.
-
-3. **peak_shave_1**
-   If 5s moving average traction power >2.5 MW, trim speed to reduce peak load.
-
-4. **baseline_follow**
-   Default case: match segment speed limit.
-
-### Outputs
-
-JSONL command timeline:
-`bus/out/ems.command.v1.jsonl`
-
-### EMS Visualization
-
-`ems/src/plot_ems_vs_baseline.py` generates:
-
-* Baseline speed profile
-* EMS target speed profile
-* Rationale shading regions
-
-Produces: `ems_speed_profile.png`
+* trip time and distance metrics
+* traction and grid energy metrics
+* HESS regeneration metrics
+* alarm and voltage-related metrics
+* grid-cost and baseline-savings metrics when applicable
 
 ---
 
-## 🗂 Data Layer
+## Data Layer And Control Panel
 
 **Directory:** `data_layer/`
 
-Functions as the integration hub:
+The current API entry point is:
 
-* Loads versioned schemas (`*.v1.json`)
-* Reads telemetry from `bus/in/`
-* Serves REST endpoints:
+* `data_layer/api.py`
 
-```
-GET /api/health
-GET /api/snapshot          # live view
-GET /api/runs/{runId}      # replay bundle
-GET /api/kpi/current       # raw KPIs
-```
+The API is implemented with Flask and serves both the data endpoints and the UI entry points used in the demo flow.
 
-The dashboard consumes these APIs directly.
+Confirmed API endpoints:
+
+* `GET /api/health`
+* `GET /api/config/default`
+* `GET /api/runs/list`
+* `POST /api/sim/run`
+* `GET /api/runs/<run_id>`
+* `GET /api/snapshot`
+* `GET /api/kpi/current`
+
+The control panel is served at:
+
+* `/control`
+
+The control panel file is:
+
+* `data_layer/static/control.html`
+
+The control panel supports:
+
+* loading the default config from the API
+* editing train, corridor, HESS, and pricing fields
+* client-side validation for run IDs and numeric inputs
+* submitting simulator runs without terminal interaction
+* opening replay JSON and dashboard routes for the created run
 
 ---
 
-## 📊 Dashboard
+## Dashboard
 
 **Directory:** `dashboard/`
 
-Standalone HTML/CSS/JS frontend with:
+The dashboard is served through Flask at:
 
-* **Live view** (polls `/api/snapshot`)
+* `/dashboard/`
 
-  * Real traction load
-  * Battery SOC
-  * Regen energy
-  * Train progress map
-  * Events + alarms
+In the current flow, the dashboard is a downstream consumer of Module 3 API payloads.
+It uses:
 
-* **Replay view** (fetch `/api/runs/{id}`)
+* `GET /api/snapshot` for live-style data
+* `GET /api/runs/<run_id>` for replay data
 
-  * Time scrubber
-  * KPIs per timestep
-  * Asset state over time
-  * Train movement animation
-  * Event tick markers
-
-All tiles and KPI displays now pull real values from simulator + EMS.
+The dashboard can also be opened directly from the control panel with the selected `run_id` embedded in the URL.
 
 ---
 
-## ▶️ Running the System
+## EMS Module
 
-### 1. Generate Simulator Telemetry
+**Directory:** `ems/`
 
-```bash
-cd simulator
-python src/emit_jsonl_from_timeline.py
-```
+The EMS code remains in the repository and can still be run in batch mode using the file-bus workflow.
+That path is currently optional and is not the main Semester 2 demo flow.
 
-### 2. Run EMS (batch mode)
+Related utilities still present in the repo include:
 
-```bash
-cd ems
-python src/ems_main.py
-```
-
-### 3. Start Data Layer API
-
-```bash
-cd data_layer
-python api.py
-```
-
-### 4. Open Dashboard
-
-Open `dashboard/index.html` in your browser.
-
-Set simulator API base:
-
-```
-http://127.0.0.1:5000/api
-```
-
-Use **Fetch Live** or **Fetch Run** to drive the interface.
+* `simulator/src/emit_jsonl_from_timeline.py`
+* `ems/src/ems_main.py`
 
 ---
 
-## 📦 Repo Structure
+## Running The Current System
 
+### 1. Create And Activate A Python Environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r simulator\requirements.txt
 ```
+
+### 2. Run Baseline And HESS From The Command Line
+
+```powershell
+python simulator\src\run_sim.py --mode baseline --run-id MR90_baseline --config config\mr90_default.json --out-dir simulator\outputs
+python simulator\src\run_sim.py --mode hess --run-id MR90_hess --config config\mr90_default.json --out-dir simulator\outputs
+```
+
+Expected outputs:
+
+* `simulator\outputs\timeline_MR90_baseline.csv`
+* `simulator\outputs\kpi_MR90_baseline.json`
+* `simulator\outputs\config_MR90_baseline.json`
+* `simulator\outputs\timeline_MR90_hess.csv`
+* `simulator\outputs\kpi_MR90_hess.json`
+* `simulator\outputs\config_MR90_hess.json`
+
+### 3. Start The API
+
+```powershell
+python data_layer\api.py
+```
+
+The API runs at:
+
+* `http://127.0.0.1:5000`
+
+### 4. Open The Control Panel
+
+Open:
+
+* `http://127.0.0.1:5000/control`
+
+This is the main no-terminal demo workflow.
+
+### 5. Open The Dashboard
+
+Open:
+
+* `http://127.0.0.1:5000/dashboard/`
+
+Use API base values:
+
+* `Data API base = http://127.0.0.1:5000/api`
+* `Simulator API base = http://127.0.0.1:5000/api`
+
+### 6. One-Command Demo Start
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_demo.ps1
+```
+
+This launches Flask and opens the control page in a browser.
+
+---
+
+## Export And Report Support Scripts
+
+**Directory:** `scripts/`
+
+Current helper scripts include:
+
+* `scripts/export_traction_load_light.py`
+* `scripts/export_load_profile.py`
+* `scripts/r4_run_acceptance_tests.py`
+
+Example commands:
+
+```powershell
+python scripts\export_traction_load_light.py --run-ids MR90_baseline MR90_hess
+python scripts\export_load_profile.py --run-id MR90_baseline
+python scripts\r4_run_acceptance_tests.py
+```
+
+The Report 4 acceptance runner writes evidence to:
+
+* `test_outputs/R4/`
+
+---
+
+## Repo Structure
+
+```text
 .
-├── simulator/
-│   ├── src/
-│   ├── outputs/
-│   └── requirements.txt
-│
-├── ems/
-│   └── src/
-│
-├── data_layer/
-│   ├── api.py
-│   └── schemas/
-│
-├── dashboard/
-│   ├── index.html
-│   └── js/
-│
-├── bus/
-│   ├── in/
-│   └── out/
-│
-├── README.md
-└── .gitignore
+|-- AGENTS.md
+|-- QUICKSTART.md
+|-- README.md
+|-- REPO_MAP.md
+|-- RUN_PROJECT.md
+|-- config/
+|   `-- mr90_default.json
+|-- simulator/
+|   |-- outputs/
+|   |-- requirements.txt
+|   `-- src/
+|       |-- emit_jsonl_from_timeline.py
+|       `-- run_sim.py
+|-- data_layer/
+|   |-- api.py
+|   `-- static/
+|       `-- control.html
+|-- dashboard/
+|   |-- index.html
+|   `-- js/
+|-- ems/
+|   `-- src/
+|-- scripts/
+|   |-- export_load_profile.py
+|   |-- export_traction_load_light.py
+|   |-- r4_run_acceptance_tests.py
+|   `-- run_demo.ps1
+`-- test_outputs/
+    `-- R4/
 ```
 
 ---
 
-## 🧪 Acceptance Tests (AT)
+## Current Status
 
-* **AT S1:** Kinematics sanity (limits, stopping precision, trip time ±5s)
-* **AT S2:** Energy continuity (traction monotonic, regen behavior)
-* **AT S3:** Telemetry frequency & skew
-* **AT S4:** Determinism across runs
-* **AT S5:** Replay export + scrub alignment
-* **AT S6:** EMS round-trip (coming in Week 9)
+The repository now contains the integrated Semester 2 Module 3 workflow:
 
----
-
-## 🗺 Roadmap (Next 2 Weeks)
-
-### Week 8–9
-
-* Integrate EMS target speeds into simulator tick loop
-* Add SOC dynamics + BESS limits
-* Implement schedule adherence KPI
-* Compare baseline vs EMS run in dashboard
-
-### Week 10 (Final)
-
-* Demo full closed-loop EMS-in-the-loop
-* Show KPI improvements
-* Present dashboard + EMS plots + integrated architecture
+* simulator runs can be launched directly or through the API
+* a resolved config artifact is saved for each run
+* replay payloads include `meta.kpiSummary`
+* snapshot payloads include `kpiSummary`
+* the control panel can submit edited runs and open the dashboard for the selected run
+* Report 4 acceptance evidence can be regenerated from the repo
 
 ---
 
-## 👥 Team Roles
+## License
 
-* **SOFE** — Simulator, Data Layer, Dashboard
-* **ELEE** — EMS
-* **SOFE** — Telemetry, Replay, Visualization
-
----
-
-## 📜 License
-
-Academic use only — Capstone 2025–26.
-
-
+Academic use only - Capstone 2025-26.
