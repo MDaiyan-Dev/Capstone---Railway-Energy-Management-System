@@ -3,7 +3,7 @@
 This is our Capstone Project Repository
 It will be used for collaboration and storage of all relevant resources
 
-# 🚇 Railway Energy Management System — Capstone 2025–26
+# 🚇 Railway Energy Management System - Capstone 2025–26
 
 **SOFE + ELEE Integrated Project — Ontario Tech University**
 **Modules:** Simulator • EMS • Data Layer • Dashboard
