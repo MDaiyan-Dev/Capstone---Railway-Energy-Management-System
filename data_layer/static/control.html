@@ -46,7 +46,7 @@
       </div>
       <div class="header-actions">
         <button id="runBtnTop" class="btn btn-primary" type="button">Run Simulation</button>
-        <a class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
+        <a id="openDashboardTop" class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
       </div>
     </header>
 
@@ -54,7 +54,7 @@
       <div id="successText"></div>
       <div class="banner-actions">
         <a id="openRunJsonBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener">Open Run Replay JSON</a>
-        <a class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
+        <a id="openDashboardSuccess" class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
       </div>
     </div>
 
@@ -163,6 +163,8 @@
     const successText = document.getElementById("successText");
     const errorBanner = document.getElementById("errorBanner");
     const openRunJsonBtn = document.getElementById("openRunJsonBtn");
+    const openDashboardTop = document.getElementById("openDashboardTop");
+    const openDashboardSuccess = document.getElementById("openDashboardSuccess");
     const detailsPre = document.getElementById("detailsPre");
     const detailsBlock = document.getElementById("detailsBlock");
     const numericInputs = Array.from(document.querySelectorAll("input[data-path]"));
@@ -197,6 +199,9 @@
     function showSuccess(runId) {
       successText.textContent = `Simulation completed for run_id: ${runId}`;
       openRunJsonBtn.href = `/api/runs/${encodeURIComponent(runId)}`;
+      const dashboardUrl = buildDashboardUrl(runId);
+      openDashboardTop.href = dashboardUrl;
+      openDashboardSuccess.href = dashboardUrl;
       successBanner.classList.add("show");
     }
     function hideSuccess() {
@@ -217,6 +222,15 @@
       const mm = String(d.getMinutes()).padStart(2, "0");
       const ss = String(d.getSeconds()).padStart(2, "0");
       return `run_${y}${m}${day}_${hh}${mm}${ss}`;
+    }
+
+    function buildDashboardUrl(runId) {
+      const baseApi = `${window.location.origin}/api`;
+      const q = new URLSearchParams();
+      if (runId) q.set("runId", runId);
+      q.set("dataBase", baseApi);
+      q.set("simBase", baseApi);
+      return `/dashboard/?${q.toString()}`;
     }
 
     function renderNumericInputs() {
@@ -460,6 +474,9 @@
       hideSuccess();
       showErrorBanner("");
       setDetails({});
+      const initialDashboardUrl = buildDashboardUrl("");
+      openDashboardTop.href = initialDashboardUrl;
+      openDashboardSuccess.href = initialDashboardUrl;
       try {
         await loadDefaultConfig();
         await loadRecentRuns();

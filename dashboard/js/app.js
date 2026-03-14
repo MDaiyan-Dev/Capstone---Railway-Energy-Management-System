@@ -363,7 +363,7 @@ byId('btnFetchLive').onclick=async()=>{
   }
 };
 
-byId('btnFetchRun').onclick=async()=>{
+async function fetchRunFromInputs(){
   try{
     const base=els.simBase.value.trim(), id=els.runId.value.trim();
     if(!base||!id) return alert('Set Simulator base and Run ID');
@@ -373,7 +373,8 @@ byId('btnFetchRun').onclick=async()=>{
   catch(e){
     alert('Run fetch failed: '+e.message);
   }
-};
+}
+byId('btnFetchRun').onclick=fetchRunFromInputs;
 
 byId('btnDemoLive').onclick=async()=>{
   try{
@@ -425,4 +426,28 @@ function highlightTargets(pred){
   });
 });
 
-fetchJSON('data/live_demo.json').then(applyLivePayload).catch(()=>{});
+function bootstrapFromQueryParams(){
+  const params = new URLSearchParams(window.location.search);
+  const runId = params.get('runId');
+  const dataBase = params.get('dataBase');
+  const simBase = params.get('simBase');
+
+  if(dataBase) els.dataBase.value = dataBase;
+  if(simBase) els.simBase.value = simBase;
+  if(runId) els.runId.value = runId;
+
+  const hasRunAutoParams = Boolean(runId || dataBase || simBase);
+  if(!hasRunAutoParams) return false;
+
+  const onceKey = 'rems_auto_fetch_run_once:' + window.location.search;
+  if(sessionStorage.getItem(onceKey)) return true;
+  sessionStorage.setItem(onceKey, '1');
+
+  setTimeout(()=>{ fetchRunFromInputs(); }, 0);
+  return true;
+}
+
+const didAutoBootstrap = bootstrapFromQueryParams();
+if(!didAutoBootstrap){
+  fetchJSON('data/live_demo.json').then(applyLivePayload).catch(()=>{});
+}
