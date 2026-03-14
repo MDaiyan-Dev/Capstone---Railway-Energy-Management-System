@@ -1,0 +1,78 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:40Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "FT-2",
+  "pass_fail": "PASS",
+  "comments": "HESS KPI output included implemented cost and savings fields using a priced baseline reference.",
+  "key_observations": {
+    "baseline_run_id": "R4_FT2_baseline_20260314T045939Z_02",
+    "hess_run_id": "R4_FT2_hess_20260314T045939Z_03",
+    "overrides_path": "C:\\Users\\amiru\\AppData\\Local\\Temp\\tmpjnre1xdw.json",
+    "baseline_command": {
+      "args": [
+        "C:\\Users\\amiru\\Python\\Python311\\python.exe",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\src\\run_sim.py",
+        "--mode",
+        "baseline",
+        "--run-id",
+        "R4_FT2_baseline_20260314T045939Z_02",
+        "--config",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\config\\mr90_default.json",
+        "--overrides",
+        "C:\\Users\\amiru\\AppData\\Local\\Temp\\tmpjnre1xdw.json"
+      ],
+      "returncode": 0,
+      "stdout": "[run_sim] wrote timeline: C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_FT2_baseline_20260314T045939Z_02.csv\n[run_sim] wrote kpi:      C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_FT2_baseline_20260314T045939Z_02.json\n[run_sim] wrote config:   C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT2_baseline_20260314T045939Z_02.json\n[run_sim] kpi: {'run_id': 'R4_FT2_baseline_20260314T045939Z_02', 'distance_km': 4.2, 'trip_time_s': 322.83, 'traction_energy_kwh': 15.617, 'traction_kwh_per_km': 3.718, 'regen_mech_kwh': 9.897, 'grid_energy_kwh': 41.834, 'grid_kwh_per_km': 9.961, 'regen_captured_kwh': 0.0, 'regen_lost_kwh': 0.0, 'energyIntensity_kwh_per_train_km': 3.71674, 'peakToAveragePowerRatio': 1.790196, 'voltageViolationDuration_s': 85.2, 'criticalAlarmCount': 6, 'savingsPerTrainKm_kwh_per_km': None, 'gridEnergyCost_total': 10.458608, 'gridEnergyCost_per_train_km': 2.490145, 'gridEnergySavings_total_vs_baseline': None, 'gridEnergySavings_per_train_km_vs_baseline': None}\n",
+      "stderr": "",
+      "elapsed_s": 0.748
+    },
+    "hess_command": {
+      "args": [
+        "C:\\Users\\amiru\\Python\\Python311\\python.exe",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\src\\run_sim.py",
+        "--mode",
+        "hess",
+        "--run-id",
+        "R4_FT2_hess_20260314T045939Z_03",
+        "--config",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\config\\mr90_default.json",
+        "--baseline-run-id",
+        "R4_FT2_baseline_20260314T045939Z_02",
+        "--overrides",
+        "C:\\Users\\amiru\\AppData\\Local\\Temp\\tmpjnre1xdw.json"
+      ],
+      "returncode": 0,
+      "stdout": "[run_sim] wrote timeline: C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_FT2_hess_20260314T045939Z_03.csv\n[run_sim] wrote kpi:      C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_FT2_hess_20260314T045939Z_03.json\n[run_sim] wrote config:   C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT2_hess_20260314T045939Z_03.json\n[run_sim] kpi: {'run_id': 'R4_FT2_hess_20260314T045939Z_03', 'distance_km': 4.2, 'trip_time_s': 322.83, 'traction_energy_kwh': 15.617, 'traction_kwh_per_km': 3.718, 'regen_mech_kwh': 9.897, 'grid_energy_kwh': 35.136, 'grid_kwh_per_km': 8.366, 'regen_captured_kwh': 19.198, 'regen_lost_kwh': 4.882, 'energyIntensity_kwh_per_train_km': 3.71674, 'peakToAveragePowerRatio': 1.790196, 'voltageViolationDuration_s': 85.2, 'criticalAlarmCount': 6, 'savingsPerTrainKm_kwh_per_km': 1.59405, 'gridEnergyCost_total': 8.784071, 'gridEnergyCost_per_train_km': 2.091445, 'gridEnergySavings_total_vs_baseline': 1.674429, 'gridEnergySavings_per_train_km_vs_baseline': 0.398674}\n",
+      "stderr": "",
+      "elapsed_s": 0.777
+    },
+    "kpi_keys": [
+      "criticalAlarmCount",
+      "distance_km",
+      "energyIntensity_kwh_per_train_km",
+      "gridEnergyCost_per_train_km",
+      "gridEnergyCost_total",
+      "gridEnergySavings_per_train_km_vs_baseline",
+      "gridEnergySavings_total_vs_baseline",
+      "grid_energy_kwh",
+      "grid_kwh_per_km",
+      "peakToAveragePowerRatio",
+      "regen_captured_kwh",
+      "regen_lost_kwh",
+      "regen_mech_kwh",
+      "run_id",
+      "savingsPerTrainKm_kwh_per_km",
+      "traction_energy_kwh",
+      "traction_kwh_per_km",
+      "trip_time_s",
+      "voltageViolationDuration_s"
+    ],
+    "kpi_values": {
+      "gridEnergyCost_total": 8.784071,
+      "gridEnergyCost_per_train_km": 2.091445,
+      "gridEnergySavings_total_vs_baseline": 1.674429,
+      "gridEnergySavings_per_train_km_vs_baseline": 0.398674
+    }
+  }
+}

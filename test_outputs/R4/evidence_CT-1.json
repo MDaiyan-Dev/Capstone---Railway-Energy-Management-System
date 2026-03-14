@@ -1,0 +1,24 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:43Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "CT-1",
+  "pass_fail": "PASS",
+  "comments": "Replay payload exposed the expected top-level contract and matched the requested run ID.",
+  "key_observations": {
+    "requested_run_id": "R4_UT3_valid_20260314T045942Z_07",
+    "meta_run_id": "R4_UT3_valid_20260314T045942Z_07",
+    "meta_keys": [
+      "kpiSummary",
+      "runId",
+      "scenario",
+      "simulated"
+    ],
+    "timeline_keys": [
+      "durationSec",
+      "points",
+      "stepSec"
+    ],
+    "has_kpi_summary": true
+  }
+}

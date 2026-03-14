@@ -1,0 +1,36 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:41Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "FT-3",
+  "pass_fail": "PASS",
+  "comments": "Resolved config captured override values while the base config remained unchanged.",
+  "key_observations": {
+    "run_id": "R4_FT3_override_20260314T045940Z_04",
+    "command": {
+      "args": [
+        "C:\\Users\\amiru\\Python\\Python311\\python.exe",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\src\\run_sim.py",
+        "--mode",
+        "baseline",
+        "--run-id",
+        "R4_FT3_override_20260314T045940Z_04",
+        "--config",
+        "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\config\\mr90_default.json",
+        "--overrides",
+        "C:\\Users\\amiru\\AppData\\Local\\Temp\\tmp3eteugej.json"
+      ],
+      "returncode": 0,
+      "stdout": "[run_sim] wrote timeline: C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_FT3_override_20260314T045940Z_04.csv\n[run_sim] wrote kpi:      C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_FT3_override_20260314T045940Z_04.json\n[run_sim] wrote config:   C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT3_override_20260314T045940Z_04.json\n[run_sim] kpi: {'run_id': 'R4_FT3_override_20260314T045940Z_04', 'distance_km': 4.2, 'trip_time_s': 336.83, 'traction_energy_kwh': 15.617, 'traction_kwh_per_km': 3.718, 'regen_mech_kwh': 9.897, 'grid_energy_kwh': 41.834, 'grid_kwh_per_km': 9.961, 'regen_captured_kwh': 0.0, 'regen_lost_kwh': 0.0, 'energyIntensity_kwh_per_train_km': 3.71674, 'peakToAveragePowerRatio': 1.790196, 'voltageViolationDuration_s': 85.2, 'criticalAlarmCount': 6, 'savingsPerTrainKm_kwh_per_km': None, 'gridEnergyCost_total': 10.458608, 'gridEnergyCost_per_train_km': 2.490145, 'gridEnergySavings_total_vs_baseline': None, 'gridEnergySavings_per_train_km_vs_baseline': None}\n",
+      "stderr": "",
+      "elapsed_s": 0.754
+    },
+    "base_config_sha256_before": "aeaa71aadc553784671bc360891c848e9a2ed8069f209b08aacf93170131a5f9",
+    "base_config_sha256_after": "aeaa71aadc553784671bc360891c848e9a2ed8069f209b08aacf93170131a5f9",
+    "resolved_config_path": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT3_override_20260314T045940Z_04.json",
+    "resolved_values": {
+      "corridor.dwell_s": 27.0,
+      "pricing.grid_price_per_kwh": 0.25
+    }
+  }
+}

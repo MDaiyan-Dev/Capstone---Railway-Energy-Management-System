@@ -1,0 +1,24 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:43Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "CT-2",
+  "pass_fail": "PASS",
+  "comments": "Snapshot payload exposed the expected live-data contract including KPI summary.",
+  "key_observations": {
+    "snapshot_source": {
+      "run_id": "MR90_hess",
+      "created": false
+    },
+    "snapshot_keys": [
+      "events",
+      "kpi",
+      "kpiSummary",
+      "status",
+      "tiles"
+    ],
+    "status_keys": [
+      "assets"
+    ]
+  }
+}

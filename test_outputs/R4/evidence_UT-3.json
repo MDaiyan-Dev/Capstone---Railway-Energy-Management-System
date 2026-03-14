@@ -1,0 +1,63 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:43Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "UT-3",
+  "pass_fail": "PASS",
+  "comments": "A valid edited run was created through the API path and exposed replay data with KPI summary.",
+  "key_observations": {
+    "request_payload": {
+      "run_id": "R4_UT3_valid_20260314T045942Z_07",
+      "mode": "hess",
+      "overrides": {
+        "corridor": {
+          "dwell_s": 26.0
+        },
+        "pricing": {
+          "grid_price_per_kwh": 0.25
+        }
+      }
+    },
+    "run_create_response": {
+      "artifacts": {
+        "config": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_UT3_valid_20260314T045942Z_07.json",
+        "kpi": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_UT3_valid_20260314T045942Z_07.json",
+        "overrides": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\overrides_R4_UT3_valid_20260314T045942Z_07.json",
+        "timeline": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_UT3_valid_20260314T045942Z_07.csv"
+      },
+      "mode": "hess",
+      "run_id": "R4_UT3_valid_20260314T045942Z_07",
+      "status": "ok",
+      "stderr": "",
+      "stdout": "[run_sim] wrote timeline: C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_UT3_valid_20260314T045942Z_07.csv\n[run_sim] wrote kpi:      C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_UT3_valid_20260314T045942Z_07.json\n[run_sim] wrote config:   C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_UT3_valid_20260314T045942Z_07.json\n[run_sim] kpi: {'run_id': 'R4_UT3_valid_20260314T045942Z_07', 'distance_km': 4.2, 'trip_time_s': 334.83, 'traction_energy_kwh': 15.617, 'traction_kwh_per_km': 3.718, 'regen_mech_kwh': 9.897, 'grid_energy_kwh': 35.136, 'grid_kwh_per_km': 8.366, 'regen_captured_kwh': 19.198, 'regen_lost_kwh': 4.882, 'energyIntensity_kwh_per_train_km': 3.71674, 'peakToAveragePowerRatio': 1.790196, 'voltageViolationDuration_s': 85.2, 'criticalAlarmCount': 6, 'savingsPerTrainKm_kwh_per_km': 1.59405, 'gridEnergyCost_total': 8.784071, 'gridEnergyCost_per_train_km': 2.091445, 'gridEnergySavings_total_vs_baseline': 1.674429, 'gridEnergySavings_per_train_km_vs_baseline': 0.398674}\n"
+    },
+    "replay_status": 200,
+    "replay_meta_keys": [
+      "kpiSummary",
+      "runId",
+      "scenario",
+      "simulated"
+    ],
+    "kpi_summary_keys": [
+      "criticalAlarmCount",
+      "distance_km",
+      "energyIntensity_kwh_per_train_km",
+      "gridEnergyCost_per_train_km",
+      "gridEnergyCost_total",
+      "gridEnergySavings_per_train_km_vs_baseline",
+      "gridEnergySavings_total_vs_baseline",
+      "grid_energy_kwh",
+      "grid_kwh_per_km",
+      "peakToAveragePowerRatio",
+      "regen_captured_kwh",
+      "regen_lost_kwh",
+      "regen_mech_kwh",
+      "run_id",
+      "savingsPerTrainKm_kwh_per_km",
+      "traction_energy_kwh",
+      "traction_kwh_per_km",
+      "trip_time_s",
+      "voltageViolationDuration_s"
+    ]
+  }
+}

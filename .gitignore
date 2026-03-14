@@ -28,6 +28,7 @@ simulator/src/Demo/week6_outputs/
 *.png
 bus/in/
 bus/out/
+!test_outputs/R4/*.csv
 
 # Keep schemas but ignore bus contents
 !data_layer/schemas/

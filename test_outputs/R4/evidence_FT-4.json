@@ -1,0 +1,40 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:42Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "FT-4",
+  "pass_fail": "PASS",
+  "comments": "API-triggered simulator run returned ok and referenced generated artifacts.",
+  "key_observations": {
+    "request_payload": {
+      "run_id": "R4_FT4_api_20260314T045941Z_05",
+      "mode": "baseline",
+      "overrides": {
+        "corridor": {
+          "dwell_s": 24.0
+        },
+        "pricing": {
+          "grid_price_per_kwh": 0.25
+        }
+      }
+    },
+    "api_response": {
+      "artifacts": {
+        "config": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT4_api_20260314T045941Z_05.json",
+        "kpi": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_FT4_api_20260314T045941Z_05.json",
+        "overrides": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\overrides_R4_FT4_api_20260314T045941Z_05.json",
+        "timeline": "C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_FT4_api_20260314T045941Z_05.csv"
+      },
+      "mode": "baseline",
+      "run_id": "R4_FT4_api_20260314T045941Z_05",
+      "status": "ok",
+      "stderr": "",
+      "stdout": "[run_sim] wrote timeline: C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\timeline_R4_FT4_api_20260314T045941Z_05.csv\n[run_sim] wrote kpi:      C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\kpi_R4_FT4_api_20260314T045941Z_05.json\n[run_sim] wrote config:   C:\\Users\\amiru\\OneDrive\\Desktop\\Capstone\\Capstone---Railway-Energy-Management-System\\simulator\\outputs\\config_R4_FT4_api_20260314T045941Z_05.json\n[run_sim] kpi: {'run_id': 'R4_FT4_api_20260314T045941Z_05', 'distance_km': 4.2, 'trip_time_s': 330.83, 'traction_energy_kwh': 15.617, 'traction_kwh_per_km': 3.718, 'regen_mech_kwh': 9.897, 'grid_energy_kwh': 41.834, 'grid_kwh_per_km': 9.961, 'regen_captured_kwh': 0.0, 'regen_lost_kwh': 0.0, 'energyIntensity_kwh_per_train_km': 3.71674, 'peakToAveragePowerRatio': 1.790196, 'voltageViolationDuration_s': 85.2, 'criticalAlarmCount': 6, 'savingsPerTrainKm_kwh_per_km': None, 'gridEnergyCost_total': 10.458608, 'gridEnergyCost_per_train_km': 2.490145, 'gridEnergySavings_total_vs_baseline': None, 'gridEnergySavings_per_train_km_vs_baseline': None}\n"
+    },
+    "artifact_exists": {
+      "timeline": true,
+      "kpi": true,
+      "config": true
+    }
+  }
+}

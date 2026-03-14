@@ -1,0 +1,21 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:43Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "CT-3",
+  "pass_fail": "PASS",
+  "comments": "Default config and run-list endpoints matched the expected interface types.",
+  "key_observations": {
+    "config_sections": {
+      "train": true,
+      "corridor": true,
+      "hess": true,
+      "pricing": true
+    },
+    "runs_count": 8,
+    "sample_run_entry": {
+      "mtime_iso": "2026-03-14T04:59:42.987741+00:00",
+      "run_id": "R4_UT3_valid_20260314T045942Z_07"
+    }
+  }
+}

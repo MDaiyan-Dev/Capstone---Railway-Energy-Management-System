@@ -1,0 +1,38 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:42Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "UT-2",
+  "pass_fail": "PASS",
+  "comments": "Invalid submission cases were rejected through objective API-side checks.",
+  "key_observations": {
+    "invalid_run_id_request": {
+      "run_id": "bad run id",
+      "mode": "baseline",
+      "overrides": {
+        "pricing": {
+          "grid_price_per_kwh": 0.25
+        }
+      }
+    },
+    "invalid_run_id_response": {
+      "status": 400,
+      "body": {
+        "error": "run_id must use only letters, digits, underscore, dash"
+      },
+      "url": "http://127.0.0.1:5000/api/sim/run"
+    },
+    "invalid_overrides_request": {
+      "run_id": "R4_UT2_invalid_20260314T045942Z_06",
+      "mode": "baseline",
+      "overrides": "not-an-object"
+    },
+    "invalid_overrides_response": {
+      "status": 400,
+      "body": {
+        "error": "overrides must be a JSON object"
+      },
+      "url": "http://127.0.0.1:5000/api/sim/run"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:44Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "PT-1",
+  "pass_fail": "PASS",
+  "comments": "API-triggered run completed successfully within the implemented 60 second timeout bound.",
+  "key_observations": {
+    "request_payload": {
+      "run_id": "R4_PT1_api_20260314T045943Z_08",
+      "mode": "baseline",
+      "overrides": {
+        "corridor": {
+          "dwell_s": 23.0
+        },
+        "pricing": {
+          "grid_price_per_kwh": 0.25
+        }
+      }
+    },
+    "response_status": 200,
+    "elapsed_seconds": 0.767,
+    "timeout_bound_seconds": 60.0
+  }
+}

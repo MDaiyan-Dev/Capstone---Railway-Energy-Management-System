@@ -1,0 +1,21 @@
+{
+  "performed_by": "Mohammad Daiyan",
+  "executed_at_utc": "2026-03-14T04:59:42Z",
+  "git_commit": "9d0068c7345f607defe24001771ea9fcd7216cf8",
+  "test_id": "UT-1",
+  "pass_fail": "PASS",
+  "comments": "Control workflow dependencies returned expected structures for default config and recent runs.",
+  "key_observations": {
+    "config_keys_present": [
+      "corridor",
+      "hess",
+      "pricing",
+      "train"
+    ],
+    "run_count": 7,
+    "sample_run": {
+      "mtime_iso": "2026-03-14T04:59:42.149736+00:00",
+      "run_id": "R4_FT4_api_20260314T045941Z_05"
+    }
+  }
+}
