@@ -7,7 +7,7 @@
   <style>
     :root { --bg:#f4f6f8; --surface:#fff; --text:#152033; --muted:#5a6b85; --line:#d8e0eb; --line-strong:#c2cedf; --brand:#0f5ec6; --brand-strong:#0a49a1; --danger:#b4232a; --success-bg:#e8f8ef; --success-text:#0a6a33; --error-bg:#fdecec; --error-text:#9a1f24; --shadow:0 6px 20px rgba(19,35,62,.08); --radius:12px; }
     *{box-sizing:border-box} body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);color:var(--text)}
-    .container{max-width:1160px;margin:28px auto 48px;padding:0 16px}
+    .container{width:min(1880px,calc(100vw - 32px));max-width:none;margin:20px auto 40px;padding:0}
     .page-header{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
     h1{margin:0;font-size:1.75rem;line-height:1.2}.subtitle{margin:8px 0 0;color:var(--muted);font-size:.98rem}
     .header-actions{display:flex;gap:10px;flex-wrap:wrap}
@@ -23,6 +23,14 @@
     .success-chip{background:#fff;border:1px solid #b5e6c9;border-radius:10px;padding:8px 10px}
     .success-chip .label{display:block;font-size:.75rem;color:#466c55;text-transform:uppercase;letter-spacing:.04em}
     .success-chip .value{display:block;margin-top:3px;font-size:.95rem;font-weight:700;color:var(--text)}
+    .workspace-grid{display:grid;gap:16px;grid-template-columns:minmax(0,3fr) minmax(420px,2fr);align-items:start}
+    .column-stack{display:grid;gap:14px;align-content:start;min-width:0}
+    .column-stack .card,.column-stack details{margin:0}
+    .side-column{position:sticky;top:16px}
+    .side-column .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .control-card .grid-3 .field:last-child{grid-column:1 / -1}
+    .control-card{border-color:#bfd0ea;box-shadow:0 10px 28px rgba(15,94,198,.08)}
+    .control-card .card-head{background:linear-gradient(180deg,#f7fbff 0%,#eef5ff 100%)}
     .analysis-card{display:none}
     .analysis-card.show{display:block}
     .tem-summary-box{min-height:104px;border:1px solid var(--line);border-radius:10px;background:#f8fbff;padding:12px 14px;color:#30415d;line-height:1.5}
@@ -38,10 +46,16 @@
     th{background:#f7faff;color:#30415d;font-weight:700} tr:last-child td{border-bottom:none}
     .row-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
     .inline-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.status-muted{color:var(--muted);font-size:.9rem}
+    .details-panel{margin:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);padding:0}
+    .details-panel summary{padding:14px 16px;background:#fafcff;border-bottom:1px solid var(--line)}
+    .details-panel[open] summary{margin-bottom:0}
+    .details-panel pre{margin:0;padding:14px 16px 16px}
     details{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#f8fbff;padding:8px 10px}
     summary{cursor:pointer;font-weight:700;color:#2a3f60}
     pre{margin:10px 0 0;padding:10px;border-radius:8px;background:#0f172a;color:#d8e3ff;overflow:auto;max-height:280px;font-family:Consolas,"Courier New",monospace;font-size:.83rem}
-    @media (max-width:1020px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:1400px){.workspace-grid{grid-template-columns:minmax(0,3fr) minmax(380px,2fr)}}
+    @media (max-width:1180px){.container{width:min(100%,calc(100vw - 28px))}.workspace-grid{grid-template-columns:minmax(0,1.2fr) minmax(320px,.9fr)}}
+    @media (max-width:1020px){.workspace-grid{grid-template-columns:1fr}.side-column{position:static}.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media (max-width:700px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.page-header{padding:16px}.card-body{padding:12px}.btn{width:100%}.header-actions{width:100%}}
   </style>
 </head>
@@ -69,154 +83,163 @@
 
     <div id="errorBanner" class="banner banner-error"></div>
 
-    <section id="emsSection" class="card analysis-card">
-      <div class="card-head">EMS Summary</div>
-      <div class="card-body">
-        <div id="emsRunContext" class="status-muted">Run a scenario or select a recent run to view EMS behavior.</div>
-        <div id="emsSummaryMeta" class="success-meta"></div>
-        <div class="grid-2" style="margin-top:12px;">
-          <div class="tem-summary-box">
-            <strong>Mode Description</strong>
-            <div id="emsModeDescription">EMS behavior will appear here after you run or select a scenario.</div>
-          </div>
-          <div class="tem-summary-box">
-            <strong>Current Power Source</strong>
-            <div id="emsPowerSourceSummary">Power-source behavior will update from the selected run.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="temSection" class="card analysis-card">
-      <div class="card-head">TEM Analysis</div>
-      <div class="card-body">
-        <div class="grid-2" style="margin-bottom:12px;">
-          <div>
-            <div id="temRunContext" class="status-muted">Run a scenario or select a recent run to analyze it with TEM.</div>
-          </div>
-          <div class="status-muted" id="temActionHint">TEM reads completed simulator outputs and writes a post-run analysis artifact.</div>
-        </div>
-        <div class="grid-2" style="margin-bottom:12px;">
-          <div class="field">
-            <label for="temBaselineRun">Baseline Comparison Run</label>
-            <select id="temBaselineRun"></select>
-            <div class="status-muted">Optional. Choose a completed baseline run to calculate savings.</div>
-          </div>
-          <div class="field">
-            <label>&nbsp;</label>
-            <button id="runTemBtn" class="btn btn-primary" type="button">Run TEM Analysis</button>
-          </div>
-        </div>
-        <div id="temMessage" class="banner"></div>
-        <div id="temResultBlock">
-          <div id="temSummaryMeta" class="success-meta"></div>
-          <div class="grid-2" style="margin-top:12px;">
-            <div class="tem-summary-box">
-              <strong>Recommendation Summary</strong>
-              <div id="temRecommendation">Run TEM analysis to generate a recommendation summary for the selected run.</div>
+    <div class="workspace-grid">
+      <div class="column-stack main-column">
+        <section class="card">
+          <div class="card-head">Train Parameters</div>
+          <div class="card-body">
+            <div class="grid-4">
+              <div class="field"><label for="train_mass_kg">mass_kg</label><input id="train_mass_kg" type="number" data-path="train.mass_kg"><div id="err-train.mass_kg" class="field-error"></div></div>
+              <div class="field"><label for="train_a_acc">a_acc_mps2</label><input id="train_a_acc" type="number" data-path="train.a_acc_mps2"><div id="err-train.a_acc_mps2" class="field-error"></div></div>
+              <div class="field"><label for="train_a_brk">a_brk_mps2</label><input id="train_a_brk" type="number" data-path="train.a_brk_mps2"><div id="err-train.a_brk_mps2" class="field-error"></div></div>
+              <div class="field"><label for="train_pmax">P_max_w</label><input id="train_pmax" type="number" data-path="train.P_max_w"><div id="err-train.P_max_w" class="field-error"></div></div>
+              <div class="field"><label for="train_fmax">F_max_n</label><input id="train_fmax" type="number" data-path="train.F_max_n"><div id="err-train.F_max_n" class="field-error"></div></div>
+              <div class="field"><label for="train_fbrk">F_brk_max_n</label><input id="train_fbrk" type="number" data-path="train.F_brk_max_n"><div id="err-train.F_brk_max_n" class="field-error"></div></div>
+              <div class="field"><label for="train_regen_eff">regen_eff</label><input id="train_regen_eff" type="number" step="0.0001" min="0" max="1" data-path="train.regen_eff"><div id="err-train.regen_eff" class="field-error"></div></div>
             </div>
-            <div class="tem-summary-box">
-              <strong>Charge and Discharge Strategy</strong>
-              <div id="temStrategy">TEM summarizes an offline storage strategy from completed simulator outputs.</div>
+            <div class="grid-3" style="margin-top:10px;">
+              <div class="field"><label for="train_davis_a">davis.A</label><input id="train_davis_a" type="number" data-path="train.davis.A"><div id="err-train.davis.A" class="field-error"></div></div>
+              <div class="field"><label for="train_davis_b">davis.B</label><input id="train_davis_b" type="number" data-path="train.davis.B"><div id="err-train.davis.B" class="field-error"></div></div>
+              <div class="field"><label for="train_davis_c">davis.C</label><input id="train_davis_c" type="number" data-path="train.davis.C"><div id="err-train.davis.C" class="field-error"></div></div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <section class="card">
-      <div class="card-head">Run Settings</div>
-      <div class="card-body">
-        <div class="grid-2" style="margin-bottom:12px;">
-          <div class="field">
-            <label for="scenarioPreset">Scenario Preset</label>
-            <select id="scenarioPreset"></select>
-            <div class="status-muted">Pick a named scenario to populate the form automatically.</div>
-          </div>
-          <div class="field">
-            <label for="recentRuns">Recent Runs</label>
-            <div class="inline-row">
-              <select id="recentRuns"></select>
-              <button id="openRecentRunBtn" class="btn btn-secondary" type="button">Open Run</button>
+        <section class="card">
+          <div class="card-head">Corridor Parameters</div>
+          <div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="corridor_dwell_s">dwell_s</label><input id="corridor_dwell_s" type="number" data-path="corridor.dwell_s"><div id="err-corridor.dwell_s" class="field-error"></div></div>
             </div>
-            <div id="recentRunsInfo" class="status-muted"></div>
-            <div id="expoRunsInfo" class="status-muted"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th style="width:70px;">Row</th><th>segments_m</th><th>speed_limits_mps</th><th style="width:110px;">Actions</th></tr></thead>
+                <tbody id="corridorTableBody"></tbody>
+              </table>
+            </div>
+            <div class="row-actions"><button id="addCorridorRowBtn" class="btn btn-secondary" type="button">Add Row</button></div>
+            <div id="err-corridor.rows" class="field-error"></div>
           </div>
-        </div>
-        <div class="grid-3">
-          <div class="field">
-            <label for="runId">Run ID</label>
-            <input id="runId" type="text" autocomplete="off">
-            <div id="err-run_id" class="field-error"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">HESS Parameters</div>
+          <div class="card-body">
+            <div class="grid-3">
+              <div class="field"><label for="batt_capacity_kwh">battery.capacity_kwh</label><input id="batt_capacity_kwh" type="number" data-path="hess.battery.capacity_kwh"><div id="err-hess.battery.capacity_kwh" class="field-error"></div></div>
+              <div class="field"><label for="batt_initial_soc">battery.initial_soc</label><input id="batt_initial_soc" type="number" step="0.0001" min="0" max="1" data-path="hess.battery.initial_soc"><div id="err-hess.battery.initial_soc" class="field-error"></div></div>
+              <div class="field"><label for="batt_max_power_kw">battery.max_power_kw</label><input id="batt_max_power_kw" type="number" data-path="hess.battery.max_power_kw"><div id="err-hess.battery.max_power_kw" class="field-error"></div></div>
+              <div class="field"><label for="sc_capacity_kwh">supercap.capacity_kwh</label><input id="sc_capacity_kwh" type="number" data-path="hess.supercap.capacity_kwh"><div id="err-hess.supercap.capacity_kwh" class="field-error"></div></div>
+              <div class="field"><label for="sc_initial_energy_kwh">supercap.initial_energy_kwh</label><input id="sc_initial_energy_kwh" type="number" data-path="hess.supercap.initial_energy_kwh"><div id="err-hess.supercap.initial_energy_kwh" class="field-error"></div></div>
+              <div class="field"><label for="sc_max_power_kw">supercap.max_power_kw</label><input id="sc_max_power_kw" type="number" data-path="hess.supercap.max_power_kw"><div id="err-hess.supercap.max_power_kw" class="field-error"></div></div>
+              <div class="field"><label for="sc_startup_assist_secs">supercap.startup_assist_secs</label><input id="sc_startup_assist_secs" type="number" data-path="hess.supercap.startup_assist_secs"><div id="err-hess.supercap.startup_assist_secs" class="field-error"></div></div>
+              <div class="field"><label for="grid_sag_max_power_kw">grid.sag_max_power_kw</label><input id="grid_sag_max_power_kw" type="number" data-path="hess.grid.sag_max_power_kw"><div id="err-hess.grid.sag_max_power_kw" class="field-error"></div></div>
+            </div>
           </div>
-          <div class="field">
-            <label for="mode">Mode</label>
-            <select id="mode"><option value="baseline">baseline</option><option value="hess">hess</option></select>
-            <div class="field-error"></div>
+        </section>
+      </div>
+
+      <aside class="column-stack side-column">
+        <section class="card control-card">
+          <div class="card-head">Run Settings</div>
+          <div class="card-body">
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div class="field">
+                <label for="scenarioPreset">Scenario Preset</label>
+                <select id="scenarioPreset"></select>
+                <div class="status-muted">Pick a named scenario to populate the form automatically.</div>
+              </div>
+              <div class="field">
+                <label for="recentRuns">Recent Runs</label>
+                <div class="inline-row">
+                  <select id="recentRuns"></select>
+                  <button id="openRecentRunBtn" class="btn btn-secondary" type="button">Open Run</button>
+                </div>
+                <div id="recentRunsInfo" class="status-muted"></div>
+                <div id="expoRunsInfo" class="status-muted"></div>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="field">
+                <label for="runId">Run ID</label>
+                <input id="runId" type="text" autocomplete="off">
+                <div id="err-run_id" class="field-error"></div>
+              </div>
+              <div class="field">
+                <label for="mode">Mode</label>
+                <select id="mode"><option value="baseline">baseline</option><option value="hess">hess</option></select>
+                <div class="field-error"></div>
+              </div>
+              <div class="field">
+                <label for="pricePerKwh">Price per kWh</label>
+                <input id="pricePerKwh" type="number" step="0.0001" min="0">
+                <div id="err-pricing.grid_price_per_kwh" class="field-error"></div>
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <label for="pricePerKwh">Price per kWh</label>
-            <input id="pricePerKwh" type="number" step="0.0001" min="0">
-            <div id="err-pricing.grid_price_per_kwh" class="field-error"></div>
+        </section>
+
+        <section id="emsSection" class="card analysis-card">
+          <div class="card-head">EMS Summary</div>
+          <div class="card-body">
+            <div id="emsRunContext" class="status-muted">Run a scenario or select a recent run to view EMS behavior.</div>
+            <div id="emsSummaryMeta" class="success-meta"></div>
+            <div class="grid-2" style="margin-top:12px;">
+              <div class="tem-summary-box">
+                <strong>Mode Description</strong>
+                <div id="emsModeDescription">EMS behavior will appear here after you run or select a scenario.</div>
+              </div>
+              <div class="tem-summary-box">
+                <strong>Current Power Source</strong>
+                <div id="emsPowerSourceSummary">Power-source behavior will update from the selected run.</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <section class="card">
-      <div class="card-head">Train Parameters</div>
-      <div class="card-body">
-        <div class="grid-4">
-          <div class="field"><label for="train_mass_kg">mass_kg</label><input id="train_mass_kg" type="number" data-path="train.mass_kg"><div id="err-train.mass_kg" class="field-error"></div></div>
-          <div class="field"><label for="train_a_acc">a_acc_mps2</label><input id="train_a_acc" type="number" data-path="train.a_acc_mps2"><div id="err-train.a_acc_mps2" class="field-error"></div></div>
-          <div class="field"><label for="train_a_brk">a_brk_mps2</label><input id="train_a_brk" type="number" data-path="train.a_brk_mps2"><div id="err-train.a_brk_mps2" class="field-error"></div></div>
-          <div class="field"><label for="train_pmax">P_max_w</label><input id="train_pmax" type="number" data-path="train.P_max_w"><div id="err-train.P_max_w" class="field-error"></div></div>
-          <div class="field"><label for="train_fmax">F_max_n</label><input id="train_fmax" type="number" data-path="train.F_max_n"><div id="err-train.F_max_n" class="field-error"></div></div>
-          <div class="field"><label for="train_fbrk">F_brk_max_n</label><input id="train_fbrk" type="number" data-path="train.F_brk_max_n"><div id="err-train.F_brk_max_n" class="field-error"></div></div>
-          <div class="field"><label for="train_regen_eff">regen_eff</label><input id="train_regen_eff" type="number" step="0.0001" min="0" max="1" data-path="train.regen_eff"><div id="err-train.regen_eff" class="field-error"></div></div>
-        </div>
-        <div class="grid-3" style="margin-top:10px;">
-          <div class="field"><label for="train_davis_a">davis.A</label><input id="train_davis_a" type="number" data-path="train.davis.A"><div id="err-train.davis.A" class="field-error"></div></div>
-          <div class="field"><label for="train_davis_b">davis.B</label><input id="train_davis_b" type="number" data-path="train.davis.B"><div id="err-train.davis.B" class="field-error"></div></div>
-          <div class="field"><label for="train_davis_c">davis.C</label><input id="train_davis_c" type="number" data-path="train.davis.C"><div id="err-train.davis.C" class="field-error"></div></div>
-        </div>
-      </div>
-    </section>
+        <section id="temSection" class="card analysis-card">
+          <div class="card-head">TEM Analysis</div>
+          <div class="card-body">
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div>
+                <div id="temRunContext" class="status-muted">Run a scenario or select a recent run to analyze it with TEM.</div>
+              </div>
+              <div class="status-muted" id="temActionHint">TEM reads completed simulator outputs and writes a post-run analysis artifact.</div>
+            </div>
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div class="field">
+                <label for="temBaselineRun">Baseline Comparison Run</label>
+                <select id="temBaselineRun"></select>
+                <div class="status-muted">Optional. Choose a completed baseline run to calculate savings.</div>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <button id="runTemBtn" class="btn btn-primary" type="button">Run TEM Analysis</button>
+              </div>
+            </div>
+            <div id="temMessage" class="banner"></div>
+            <div id="temResultBlock">
+              <div id="temSummaryMeta" class="success-meta"></div>
+              <div class="grid-2" style="margin-top:12px;">
+                <div class="tem-summary-box">
+                  <strong>Recommendation Summary</strong>
+                  <div id="temRecommendation">Run TEM analysis to generate a recommendation summary for the selected run.</div>
+                </div>
+                <div class="tem-summary-box">
+                  <strong>Charge and Discharge Strategy</strong>
+                  <div id="temStrategy">TEM summarizes an offline storage strategy from completed simulator outputs.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <section class="card">
-      <div class="card-head">Corridor Parameters</div>
-      <div class="card-body">
-        <div class="grid-2">
-          <div class="field"><label for="corridor_dwell_s">dwell_s</label><input id="corridor_dwell_s" type="number" data-path="corridor.dwell_s"><div id="err-corridor.dwell_s" class="field-error"></div></div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th style="width:70px;">Row</th><th>segments_m</th><th>speed_limits_mps</th><th style="width:110px;">Actions</th></tr></thead>
-            <tbody id="corridorTableBody"></tbody>
-          </table>
-        </div>
-        <div class="row-actions"><button id="addCorridorRowBtn" class="btn btn-secondary" type="button">Add Row</button></div>
-        <div id="err-corridor.rows" class="field-error"></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-head">HESS Parameters</div>
-      <div class="card-body">
-        <div class="grid-3">
-          <div class="field"><label for="batt_capacity_kwh">battery.capacity_kwh</label><input id="batt_capacity_kwh" type="number" data-path="hess.battery.capacity_kwh"><div id="err-hess.battery.capacity_kwh" class="field-error"></div></div>
-          <div class="field"><label for="batt_initial_soc">battery.initial_soc</label><input id="batt_initial_soc" type="number" step="0.0001" min="0" max="1" data-path="hess.battery.initial_soc"><div id="err-hess.battery.initial_soc" class="field-error"></div></div>
-          <div class="field"><label for="batt_max_power_kw">battery.max_power_kw</label><input id="batt_max_power_kw" type="number" data-path="hess.battery.max_power_kw"><div id="err-hess.battery.max_power_kw" class="field-error"></div></div>
-          <div class="field"><label for="sc_capacity_kwh">supercap.capacity_kwh</label><input id="sc_capacity_kwh" type="number" data-path="hess.supercap.capacity_kwh"><div id="err-hess.supercap.capacity_kwh" class="field-error"></div></div>
-          <div class="field"><label for="sc_initial_energy_kwh">supercap.initial_energy_kwh</label><input id="sc_initial_energy_kwh" type="number" data-path="hess.supercap.initial_energy_kwh"><div id="err-hess.supercap.initial_energy_kwh" class="field-error"></div></div>
-          <div class="field"><label for="sc_max_power_kw">supercap.max_power_kw</label><input id="sc_max_power_kw" type="number" data-path="hess.supercap.max_power_kw"><div id="err-hess.supercap.max_power_kw" class="field-error"></div></div>
-          <div class="field"><label for="sc_startup_assist_secs">supercap.startup_assist_secs</label><input id="sc_startup_assist_secs" type="number" data-path="hess.supercap.startup_assist_secs"><div id="err-hess.supercap.startup_assist_secs" class="field-error"></div></div>
-          <div class="field"><label for="grid_sag_max_power_kw">grid.sag_max_power_kw</label><input id="grid_sag_max_power_kw" type="number" data-path="hess.grid.sag_max_power_kw"><div id="err-hess.grid.sag_max_power_kw" class="field-error"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <details id="detailsBlock"><summary>Details</summary><pre id="detailsPre">{}</pre></details>
+        <details id="detailsBlock" class="details-panel">
+          <summary>Details</summary>
+          <pre id="detailsPre">{}</pre>
+        </details>
+      </aside>
+    </div>
   </div>
   <script>
     const runIdRe = /^[A-Za-z0-9_-]+$/;
@@ -307,7 +330,7 @@
       "High Price Period": {
         mode: "hess",
         apply: (cfg) => {
-          cfg.pricing.grid_price_per_kwh = Math.max(0.25, Number((cfg.pricing.grid_price_per_kwh + 0.25).toFixed(4)));
+          cfg.pricing.grid_price_per_kwh = Math.max(0.5, Number((cfg.pricing.grid_price_per_kwh + 0.25).toFixed(4)));
           return cfg;
         }
       }
@@ -338,7 +361,7 @@
       if (!cfg.pricing || typeof cfg.pricing !== "object") cfg.pricing = {};
       if (!Array.isArray(cfg.corridor.segments_m)) cfg.corridor.segments_m = [];
       if (!Array.isArray(cfg.corridor.speed_limits_mps)) cfg.corridor.speed_limits_mps = [];
-      if (!isFiniteNumber(cfg.pricing.grid_price_per_kwh)) cfg.pricing.grid_price_per_kwh = 0.0;
+      if (!isFiniteNumber(cfg.pricing.grid_price_per_kwh)) cfg.pricing.grid_price_per_kwh = 0.25;
       return cfg;
     }
     function formatPricePerKwh(value) {
@@ -348,6 +371,10 @@
     function formatMetric(value, digits = 4) {
       if (!isFiniteNumber(value)) return "n/a";
       return Number(value).toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    function formatCurrency(value, digits = 4) {
+      if (!isFiniteNumber(value)) return "n/a";
+      return `$${formatMetric(value, digits)}`;
     }
     function formatPercentFromFraction(value, digits = 1) {
       if (!isFiniteNumber(value)) return "n/a";
@@ -599,8 +626,8 @@
       if (state.currentTemArtifact) {
         renderMetaChips(temSummaryMeta, [
           ["TEM status", state.currentTemArtifact.status || "n/a"],
-          ["total cost", formatMetric(state.currentTemArtifact.total_cost)],
-          ["savings vs baseline", formatMetric(state.currentTemArtifact.savings_total_vs_baseline)],
+          ["total cost", formatCurrency(state.currentTemArtifact.total_cost)],
+          ["savings vs baseline", formatCurrency(state.currentTemArtifact.savings_total_vs_baseline)],
           ["baseline run", state.currentTemArtifact.baseline_run_id || "not provided"]
         ]);
         temRecommendation.textContent = state.currentTemArtifact.recommendation_summary || "n/a";

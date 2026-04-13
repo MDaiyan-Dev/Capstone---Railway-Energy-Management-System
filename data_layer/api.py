@@ -675,7 +675,7 @@ def api_config_default():
     if "hess" not in cfg:
         cfg["hess"] = {}
     if "pricing" not in cfg:
-        cfg["pricing"] = {"grid_price_per_kwh": 0.0}
+        cfg["pricing"] = {"grid_price_per_kwh": 0.25}
 
     return jsonify(cfg)
 

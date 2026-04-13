@@ -107,7 +107,7 @@ def default_config() -> Dict[str, Any]:
             "grid": {"sag_max_power_kw": 1000.0},
         },
         "pricing": {
-            "grid_price_per_kwh": 0.0,
+            "grid_price_per_kwh": 0.25,
         },
     }
 
@@ -148,7 +148,7 @@ def ensure_optional_config_sections(cfg: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(pricing, dict):
         pricing = {}
     if "grid_price_per_kwh" not in pricing:
-        pricing["grid_price_per_kwh"] = 0.0
+        pricing["grid_price_per_kwh"] = 0.25
     normalized["pricing"] = pricing
     return normalized
 
@@ -963,9 +963,9 @@ def main() -> None:
 
     pricing_cfg = cfg.get("pricing", {})
     if isinstance(pricing_cfg, dict):
-        grid_price_per_kwh = float(pricing_cfg.get("grid_price_per_kwh", 0.0))
+        grid_price_per_kwh = float(pricing_cfg.get("grid_price_per_kwh", 0.25))
     else:
-        grid_price_per_kwh = 0.0
+        grid_price_per_kwh = 0.25
 
     kpi = compute_kpi(
         df=df,
