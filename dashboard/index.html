@@ -9,10 +9,13 @@
 <body>
   <div class="wrap">
     <header id="kpis" class="panel">
-      <div class="kpi"><span class="label">Demand Served</span><span id="kpi-demand" class="value">empty</span></div>
-      <div class="kpi"><span class="label">Grid Dependence</span><span id="kpi-grid" class="value">empty</span></div>
-      <div class="kpi"><span class="label">Regen Utilization</span><span id="kpi-regen" class="value">empty</span></div>
-      <div class="kpi"><span class="label">Voltage Deviation</span><span id="kpi-volt" class="value">empty</span></div>
+      <div class="kpiRow">
+        <div class="kpi"><span class="label">Demand Served</span><span id="kpi-demand" class="value">empty</span></div>
+        <div class="kpi"><span class="label">Grid Dependence</span><span id="kpi-grid" class="value">empty</span></div>
+        <div class="kpi"><span class="label">Regen Utilization</span><span id="kpi-regen" class="value">empty</span></div>
+        <div class="kpi"><span class="label">Voltage Deviation</span><span id="kpi-volt" class="value">empty</span></div>
+        <div id="runMetaBar" class="runMetaBar" aria-live="polite"></div>
+      </div>
       <div class="cfg">
         <input id="dataBase" placeholder="Data API base (e.g., http://localhost:9000)" />
         <input id="simBase" placeholder="Simulator API base (e.g., http://localhost:9100)" />
@@ -94,7 +97,7 @@
         <div id="playhead" class="playhead-badge">t = 0s</div>
         <div id="ticks" class="ticks"></div>
       </div>
-      <div class="meta"><span id="timeLabel">Time: empty</span></div>
+      <div class="meta timeline-readout"><span id="timeLabel">Time: empty</span></div>
     </section>
   </div>
 

@@ -1,37 +1,58 @@
 {
   "meta": {
-    "runId": "run-peak-001",
-    "scenario": "peak",
-    "simulated": true
+    "runId": "MR90_demo_replay",
+    "scenario": "dashboard-demo",
+    "simulated": true,
+    "kpiSummary": {
+      "run_id": "MR90_demo_replay",
+      "distance_km": 4.2,
+      "trip_time_s": 322.83,
+      "traction_energy_kwh": 15.617,
+      "traction_kwh_per_km": 3.718,
+      "regen_mech_kwh": 9.897,
+      "grid_energy_kwh": 35.136,
+      "grid_kwh_per_km": 8.366,
+      "regen_captured_kwh": 19.198,
+      "regen_lost_kwh": 4.882,
+      "energyIntensity_kwh_per_train_km": 3.71674,
+      "peakToAveragePowerRatio": 1.790196,
+      "voltageViolationDuration_s": 85.2,
+      "criticalAlarmCount": 6,
+      "savingsPerTrainKm_kwh_per_km": 1.59405,
+      "gridEnergyCost_total": 0.0,
+      "gridEnergyCost_per_train_km": 0.0,
+      "gridEnergySavings_total_vs_baseline": 0.0,
+      "gridEnergySavings_per_train_km_vs_baseline": 0.0
+    }
   },
   "timeline": {
-    "durationSec": 600,
-    "stepSec": 60,
+    "durationSec": 360,
+    "stepSec": 180,
     "points": [
       {
         "t": 0,
         "kpi": {
-          "demandServed": 0.98,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
+          "demandServed": 0.0,
+          "gridDependence": 0.0,
+          "regenUtilization": 0.0,
+          "voltageDeviation": 0.01
         },
         "assets": [
           {
             "id": "subA",
             "label": "Sub A",
             "type": "substation",
-            "pos": 0.15,
+            "pos": 0.11,
             "state": "green",
             "vDev": "2.0%",
             "reason": "normal",
             "ts": "t=0"
           },
           {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "sta1",
+            "label": "Sta 1",
             "type": "station",
-            "pos": 0.31,
+            "pos": 0.28,
             "state": "green",
             "reason": "normal",
             "ts": "t=0"
@@ -40,9 +61,18 @@
             "id": "bess",
             "label": "BESS",
             "type": "bess",
-            "pos": 0.47,
+            "pos": 0.49,
             "state": "green",
-            "soc": "78%",
+            "soc": "60%",
+            "reason": "ready",
+            "ts": "t=0"
+          },
+          {
+            "id": "sta2",
+            "label": "Sta 2",
+            "type": "station",
+            "pos": 0.72,
+            "state": "green",
             "reason": "normal",
             "ts": "t=0"
           },
@@ -50,547 +80,196 @@
             "id": "subC",
             "label": "Sub C",
             "type": "substation",
-            "pos": 0.78,
+            "pos": 0.89,
             "state": "green",
             "vDev": "1.5%",
             "reason": "normal",
             "ts": "t=0"
-          }
-        ],
-        "events": []
-      },
-      {
-        "t": 60,
-        "kpi": {
-          "demandServed": 0.98,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=60"
           },
           {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "train",
+            "label": "Train",
             "type": "station",
-            "pos": 0.31,
+            "pos": 0.05,
             "state": "green",
-            "reason": "normal",
-            "ts": "t=60"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=60"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=60"
+            "reason": "stopped",
+            "ts": "t=0"
           }
         ],
-        "events": []
-      },
-      {
-        "t": 120,
-        "kpi": {
-          "demandServed": 0.98,
-          "gridDependence": 0.67,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "amber",
-            "vDev": "5.5%",
-            "reason": "load high",
-            "ts": "t=120"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
-            "type": "station",
-            "pos": 0.31,
-            "state": "green",
-            "reason": "normal",
-            "ts": "t=120"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=120"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=120"
-          }
-        ],
-        "events": [
-          {
-            "id": "evLoad",
-            "severity": "warn",
-            "text": "Sub A load rising",
-            "action": "monitor",
-            "ts": "t=120"
-          }
-        ]
+        "events": [],
+        "extra": {
+          "tractionLoad": "0 W",
+          "batterySOC": "60%",
+          "regenToday": "0.00 kWh",
+          "activeAlarms": 0,
+          "storageShare": "0.0%"
+        }
       },
       {
         "t": 180,
         "kpi": {
-          "demandServed": 0.94,
-          "gridDependence": 0.67,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.1
+          "demandServed": 0.56,
+          "gridDependence": 0.58,
+          "regenUtilization": 0.36,
+          "voltageDeviation": 0.05
         },
         "assets": [
           {
             "id": "subA",
             "label": "Sub A",
             "type": "substation",
-            "pos": 0.15,
+            "pos": 0.11,
+            "state": "green",
+            "vDev": "2.2%",
+            "reason": "normal",
+            "ts": "t=180"
+          },
+          {
+            "id": "sta1",
+            "label": "Sta 1",
+            "type": "station",
+            "pos": 0.28,
+            "state": "green",
+            "reason": "normal",
+            "ts": "t=180"
+          },
+          {
+            "id": "bess",
+            "label": "BESS",
+            "type": "bess",
+            "pos": 0.49,
             "state": "amber",
-            "vDev": "5.5%",
+            "soc": "49%",
+            "reason": "supporting peak shave",
+            "ts": "t=180"
+          },
+          {
+            "id": "sta2",
+            "label": "Sta 2",
+            "type": "station",
+            "pos": 0.72,
+            "state": "amber",
+            "reason": "grid power near limit",
+            "ts": "t=180"
+          },
+          {
+            "id": "subC",
+            "label": "Sub C",
+            "type": "substation",
+            "pos": 0.89,
+            "state": "amber",
+            "vDev": "4.8%",
             "reason": "load high",
             "ts": "t=180"
           },
           {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "train",
+            "label": "Train",
             "type": "station",
-            "pos": 0.31,
-            "state": "red",
-            "reason": "breaker trip",
-            "ts": "t=180"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=180"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
+            "pos": 0.53,
+            "state": "amber",
+            "reason": "in motion",
             "ts": "t=180"
           }
         ],
         "events": [
           {
-            "id": "evTrip",
+            "id": "grid-peak-180",
             "severity": "alarm",
-            "text": "Breaker trip at Sta B",
-            "action": "investigate",
+            "text": "Grid power near limit",
             "ts": "t=180"
           }
-        ]
-      },
-      {
-        "t": 240,
-        "kpi": {
-          "demandServed": 0.98,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.5,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=240"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
-            "type": "station",
-            "pos": 0.31,
-            "state": "green",
-            "reason": "normal",
-            "ts": "t=240"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "amber",
-            "soc": "62%",
-            "reason": "charging",
-            "ts": "t=240"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=240"
-          }
         ],
-        "events": []
-      },
-      {
-        "t": 300,
-        "kpi": {
-          "demandServed": 0.98,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.5,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=300"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
-            "type": "station",
-            "pos": 0.31,
-            "state": "green",
-            "reason": "normal",
-            "ts": "t=300"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "amber",
-            "soc": "62%",
-            "reason": "charging",
-            "ts": "t=300"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=300"
-          }
-        ],
-        "events": [
-          {
-            "id": "evRecover",
-            "severity": "info",
-            "text": "System recovering",
-            "ts": "t=300"
-          }
-        ]
+        "extra": {
+          "tractionLoad": "1040000 W",
+          "batterySOC": "49%",
+          "regenToday": "0.86 kWh",
+          "activeAlarms": 1,
+          "storageShare": "42.0%"
+        }
       },
       {
         "t": 360,
         "kpi": {
-          "demandServed": 0.99,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
+          "demandServed": 1.0,
+          "gridDependence": 0.0,
+          "regenUtilization": 0.84,
+          "voltageDeviation": 0.01
         },
         "assets": [
           {
             "id": "subA",
             "label": "Sub A",
             "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=360"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
-            "type": "station",
-            "pos": 0.31,
-            "state": "green",
-            "reason": "normal",
-            "ts": "t=360"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=360"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
+            "pos": 0.11,
             "state": "green",
             "vDev": "1.5%",
             "reason": "normal",
             "ts": "t=360"
-          }
-        ],
-        "events": []
-      },
-      {
-        "t": 420,
-        "kpi": {
-          "demandServed": 0.99,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=420"
           },
           {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "sta1",
+            "label": "Sta 1",
             "type": "station",
-            "pos": 0.31,
+            "pos": 0.28,
             "state": "green",
             "reason": "normal",
-            "ts": "t=420"
+            "ts": "t=360"
           },
           {
             "id": "bess",
             "label": "BESS",
             "type": "bess",
-            "pos": 0.47,
+            "pos": 0.49,
             "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=420"
+            "soc": "58%",
+            "reason": "idle",
+            "ts": "t=360"
           },
           {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=420"
-          }
-        ],
-        "events": []
-      },
-      {
-        "t": 480,
-        "kpi": {
-          "demandServed": 0.99,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=480"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "sta2",
+            "label": "Sta 2",
             "type": "station",
-            "pos": 0.31,
+            "pos": 0.72,
             "state": "green",
             "reason": "normal",
-            "ts": "t=480"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=480"
+            "ts": "t=360"
           },
           {
             "id": "subC",
             "label": "Sub C",
             "type": "substation",
-            "pos": 0.78,
+            "pos": 0.89,
             "state": "green",
-            "vDev": "1.5%",
+            "vDev": "1.4%",
             "reason": "normal",
-            "ts": "t=480"
-          }
-        ],
-        "events": []
-      },
-      {
-        "t": 540,
-        "kpi": {
-          "demandServed": 0.99,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
-          {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=540"
+            "ts": "t=360"
           },
           {
-            "id": "staB",
-            "label": "Sta B",
+            "id": "train",
+            "label": "Train",
             "type": "station",
-            "pos": 0.31,
+            "pos": 0.95,
             "state": "green",
-            "reason": "normal",
-            "ts": "t=540"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=540"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=540"
+            "reason": "stopped",
+            "ts": "t=360"
           }
         ],
-        "events": []
-      },
-      {
-        "t": 600,
-        "kpi": {
-          "demandServed": 0.99,
-          "gridDependence": 0.62,
-          "regenUtilization": 0.3,
-          "voltageDeviation": 0.02
-        },
-        "assets": [
+        "events": [
           {
-            "id": "subA",
-            "label": "Sub A",
-            "type": "substation",
-            "pos": 0.15,
-            "state": "green",
-            "vDev": "2.0%",
-            "reason": "normal",
-            "ts": "t=600"
-          },
-          {
-            "id": "staB",
-            "label": "Sta B",
-            "type": "station",
-            "pos": 0.31,
-            "state": "green",
-            "reason": "normal",
-            "ts": "t=600"
-          },
-          {
-            "id": "bess",
-            "label": "BESS",
-            "type": "bess",
-            "pos": 0.47,
-            "state": "green",
-            "soc": "78%",
-            "reason": "normal",
-            "ts": "t=600"
-          },
-          {
-            "id": "subC",
-            "label": "Sub C",
-            "type": "substation",
-            "pos": 0.78,
-            "state": "green",
-            "vDev": "1.5%",
-            "reason": "normal",
-            "ts": "t=600"
+            "id": "trip-complete",
+            "severity": "info",
+            "text": "Trip complete",
+            "ts": "t=360"
           }
         ],
-        "events": []
+        "extra": {
+          "tractionLoad": "0 W",
+          "batterySOC": "58%",
+          "regenToday": "1.92 kWh",
+          "activeAlarms": 0,
+          "storageShare": "0.0%"
+        }
       }
     ]
   }

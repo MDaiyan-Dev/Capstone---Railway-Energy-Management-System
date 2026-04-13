@@ -19,6 +19,14 @@
     .banner{border-radius:10px;border:1px solid transparent;padding:12px 14px;margin-bottom:12px;display:none}.banner.show{display:block}
     .banner-success{background:var(--success-bg);border-color:#b5e6c9;color:var(--success-text)}.banner-error{background:var(--error-bg);border-color:#f3c2c4;color:var(--error-text)}
     .banner-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .success-meta{margin-top:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+    .success-chip{background:#fff;border:1px solid #b5e6c9;border-radius:10px;padding:8px 10px}
+    .success-chip .label{display:block;font-size:.75rem;color:#466c55;text-transform:uppercase;letter-spacing:.04em}
+    .success-chip .value{display:block;margin-top:3px;font-size:.95rem;font-weight:700;color:var(--text)}
+    .analysis-card{display:none}
+    .analysis-card.show{display:block}
+    .tem-summary-box{min-height:104px;border:1px solid var(--line);border-radius:10px;background:#f8fbff;padding:12px 14px;color:#30415d;line-height:1.5}
+    .tem-summary-box strong{display:block;margin-bottom:6px;color:var(--text);font-size:.9rem}
     .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
     .card-head{padding:14px 16px;border-bottom:1px solid var(--line);background:#fafcff;font-size:1rem;font-weight:700}.card-body{padding:14px 16px 18px}
     .grid-4{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}.grid-3{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.grid-2{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -52,6 +60,7 @@
 
     <div id="successBanner" class="banner banner-success">
       <div id="successText"></div>
+      <div id="successMeta" class="success-meta"></div>
       <div class="banner-actions">
         <a id="openRunJsonBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener">Open Run Replay JSON</a>
         <a id="openDashboardSuccess" class="btn btn-secondary" href="/dashboard/" target="_blank" rel="noopener">Open Dashboard</a>
@@ -60,10 +69,81 @@
 
     <div id="errorBanner" class="banner banner-error"></div>
 
+    <section id="emsSection" class="card analysis-card">
+      <div class="card-head">EMS Summary</div>
+      <div class="card-body">
+        <div id="emsRunContext" class="status-muted">Run a scenario or select a recent run to view EMS behavior.</div>
+        <div id="emsSummaryMeta" class="success-meta"></div>
+        <div class="grid-2" style="margin-top:12px;">
+          <div class="tem-summary-box">
+            <strong>Mode Description</strong>
+            <div id="emsModeDescription">EMS behavior will appear here after you run or select a scenario.</div>
+          </div>
+          <div class="tem-summary-box">
+            <strong>Current Power Source</strong>
+            <div id="emsPowerSourceSummary">Power-source behavior will update from the selected run.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="temSection" class="card analysis-card">
+      <div class="card-head">TEM Analysis</div>
+      <div class="card-body">
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <div id="temRunContext" class="status-muted">Run a scenario or select a recent run to analyze it with TEM.</div>
+          </div>
+          <div class="status-muted" id="temActionHint">TEM reads completed simulator outputs and writes a post-run analysis artifact.</div>
+        </div>
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="field">
+            <label for="temBaselineRun">Baseline Comparison Run</label>
+            <select id="temBaselineRun"></select>
+            <div class="status-muted">Optional. Choose a completed baseline run to calculate savings.</div>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button id="runTemBtn" class="btn btn-primary" type="button">Run TEM Analysis</button>
+          </div>
+        </div>
+        <div id="temMessage" class="banner"></div>
+        <div id="temResultBlock">
+          <div id="temSummaryMeta" class="success-meta"></div>
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="tem-summary-box">
+              <strong>Recommendation Summary</strong>
+              <div id="temRecommendation">Run TEM analysis to generate a recommendation summary for the selected run.</div>
+            </div>
+            <div class="tem-summary-box">
+              <strong>Charge and Discharge Strategy</strong>
+              <div id="temStrategy">TEM summarizes an offline storage strategy from completed simulator outputs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="card">
       <div class="card-head">Run Settings</div>
       <div class="card-body">
-        <div class="grid-4">
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="field">
+            <label for="scenarioPreset">Scenario Preset</label>
+            <select id="scenarioPreset"></select>
+            <div class="status-muted">Pick a named scenario to populate the form automatically.</div>
+          </div>
+          <div class="field">
+            <label for="recentRuns">Recent Runs</label>
+            <div class="inline-row">
+              <select id="recentRuns"></select>
+              <button id="openRecentRunBtn" class="btn btn-secondary" type="button">Open Run</button>
+            </div>
+            <div id="recentRunsInfo" class="status-muted"></div>
+            <div id="expoRunsInfo" class="status-muted"></div>
+          </div>
+        </div>
+        <div class="grid-3">
           <div class="field">
             <label for="runId">Run ID</label>
             <input id="runId" type="text" autocomplete="off">
@@ -78,14 +158,6 @@
             <label for="pricePerKwh">Price per kWh</label>
             <input id="pricePerKwh" type="number" step="0.0001" min="0">
             <div id="err-pricing.grid_price_per_kwh" class="field-error"></div>
-          </div>
-          <div class="field">
-            <label for="recentRuns">Recent Runs</label>
-            <div class="inline-row">
-              <select id="recentRuns"></select>
-              <button id="openRecentRunBtn" class="btn btn-secondary" type="button">Open Run</button>
-            </div>
-            <div id="recentRunsInfo" class="status-muted"></div>
           </div>
         </div>
       </div>
@@ -148,20 +220,50 @@
   </div>
   <script>
     const runIdRe = /^[A-Za-z0-9_-]+$/;
-    const state = { baseConfig: null, workingConfig: null, busy: false, priceEdited: false, validationErrors: {} };
+    const state = {
+      baseConfig: null,
+      workingConfig: null,
+      busy: false,
+      temBusy: false,
+      priceEdited: false,
+      validationErrors: {},
+      selectedScenarioName: null,
+      recentRuns: [],
+      currentRunContext: null,
+      currentEmsSummary: null,
+      currentTemArtifact: null
+    };
 
     const runBtnTop = document.getElementById("runBtnTop");
+    const scenarioPresetInput = document.getElementById("scenarioPreset");
     const runIdInput = document.getElementById("runId");
     const modeInput = document.getElementById("mode");
     const priceInput = document.getElementById("pricePerKwh");
     const recentRunsSelect = document.getElementById("recentRuns");
     const openRecentRunBtn = document.getElementById("openRecentRunBtn");
     const recentRunsInfo = document.getElementById("recentRunsInfo");
+    const expoRunsInfo = document.getElementById("expoRunsInfo");
     const addCorridorRowBtn = document.getElementById("addCorridorRowBtn");
     const corridorTableBody = document.getElementById("corridorTableBody");
     const successBanner = document.getElementById("successBanner");
     const successText = document.getElementById("successText");
+    const successMeta = document.getElementById("successMeta");
     const errorBanner = document.getElementById("errorBanner");
+    const emsSection = document.getElementById("emsSection");
+    const emsRunContext = document.getElementById("emsRunContext");
+    const emsSummaryMeta = document.getElementById("emsSummaryMeta");
+    const emsModeDescription = document.getElementById("emsModeDescription");
+    const emsPowerSourceSummary = document.getElementById("emsPowerSourceSummary");
+    const temSection = document.getElementById("temSection");
+    const temRunContext = document.getElementById("temRunContext");
+    const temActionHint = document.getElementById("temActionHint");
+    const temBaselineRun = document.getElementById("temBaselineRun");
+    const runTemBtn = document.getElementById("runTemBtn");
+    const temMessage = document.getElementById("temMessage");
+    const temResultBlock = document.getElementById("temResultBlock");
+    const temSummaryMeta = document.getElementById("temSummaryMeta");
+    const temRecommendation = document.getElementById("temRecommendation");
+    const temStrategy = document.getElementById("temStrategy");
     const openRunJsonBtn = document.getElementById("openRunJsonBtn");
     const openDashboardTop = document.getElementById("openDashboardTop");
     const openDashboardSuccess = document.getElementById("openDashboardSuccess");
@@ -171,6 +273,45 @@
 
     const deepClone = (v) => JSON.parse(JSON.stringify(v));
     const isFiniteNumber = (v) => typeof v === "number" && Number.isFinite(v);
+
+    const PRESET_DEFINITIONS = {
+      "Baseline Reference": {
+        mode: "baseline",
+        apply: (cfg) => cfg
+      },
+      "HESS Reference": {
+        mode: "hess",
+        apply: (cfg) => cfg
+      },
+      "Constrained Grid": {
+        mode: "hess",
+        apply: (cfg) => {
+          cfg.hess.grid.sag_max_power_kw = Math.max(300, Math.round(cfg.hess.grid.sag_max_power_kw * 0.7));
+          return cfg;
+        }
+      },
+      "High Dwell Service": {
+        mode: "hess",
+        apply: (cfg) => {
+          cfg.corridor.dwell_s = Math.max(cfg.corridor.dwell_s + 10, 30);
+          return cfg;
+        }
+      },
+      "Reduced Speed Corridor": {
+        mode: "hess",
+        apply: (cfg) => {
+          cfg.corridor.speed_limits_mps = cfg.corridor.speed_limits_mps.map((v) => Math.max(8, Number((v * 0.85).toFixed(3))));
+          return cfg;
+        }
+      },
+      "High Price Period": {
+        mode: "hess",
+        apply: (cfg) => {
+          cfg.pricing.grid_price_per_kwh = Math.max(0.25, Number((cfg.pricing.grid_price_per_kwh + 0.25).toFixed(4)));
+          return cfg;
+        }
+      }
+    };
 
     function getByPath(obj, path) {
       return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
@@ -186,6 +327,137 @@
       }
       ref[parts[parts.length - 1]] = value;
     }
+    function normalizeConfig(cfg) {
+      if (!cfg || typeof cfg !== "object") return cfg;
+      if (!cfg.train || typeof cfg.train !== "object") cfg.train = {};
+      if (!cfg.corridor || typeof cfg.corridor !== "object") cfg.corridor = {};
+      if (!cfg.hess || typeof cfg.hess !== "object") cfg.hess = {};
+      if (!cfg.hess.battery || typeof cfg.hess.battery !== "object") cfg.hess.battery = {};
+      if (!cfg.hess.supercap || typeof cfg.hess.supercap !== "object") cfg.hess.supercap = {};
+      if (!cfg.hess.grid || typeof cfg.hess.grid !== "object") cfg.hess.grid = {};
+      if (!cfg.pricing || typeof cfg.pricing !== "object") cfg.pricing = {};
+      if (!Array.isArray(cfg.corridor.segments_m)) cfg.corridor.segments_m = [];
+      if (!Array.isArray(cfg.corridor.speed_limits_mps)) cfg.corridor.speed_limits_mps = [];
+      if (!isFiniteNumber(cfg.pricing.grid_price_per_kwh)) cfg.pricing.grid_price_per_kwh = 0.0;
+      return cfg;
+    }
+    function formatPricePerKwh(value) {
+      if (!isFiniteNumber(value)) return "n/a";
+      return Number(value).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    function formatMetric(value, digits = 4) {
+      if (!isFiniteNumber(value)) return "n/a";
+      return Number(value).toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    function formatPercentFromFraction(value, digits = 1) {
+      if (!isFiniteNumber(value)) return "n/a";
+      return `${formatMetric(value * 100, digits)}%`;
+    }
+    function formatPercentValue(value, digits = 1) {
+      if (!isFiniteNumber(value)) return "n/a";
+      return `${formatMetric(value, digits)}%`;
+    }
+    function formatEnabled(value) {
+      return value ? "Enabled" : "Disabled";
+    }
+    function getRunLabels(run) {
+      return run && Array.isArray(run.labels) ? run.labels.filter((label) => typeof label === "string" && label.trim()) : [];
+    }
+    function renderMetaChips(container, items) {
+      container.innerHTML = "";
+      items.forEach(([label, value]) => {
+        const chip = document.createElement("div");
+        chip.className = "success-chip";
+        const labelEl = document.createElement("span");
+        labelEl.className = "label";
+        labelEl.textContent = label;
+        const valueEl = document.createElement("span");
+        valueEl.className = "value";
+        valueEl.textContent = value;
+        chip.appendChild(labelEl);
+        chip.appendChild(valueEl);
+        container.appendChild(chip);
+      });
+    }
+    function clearFeedback() {
+      hideSuccess();
+      showErrorBanner("");
+      resetTemContext();
+    }
+    function renderSuccessMeta(items) {
+      renderMetaChips(successMeta, items);
+    }
+    function formatRecentRunLabel(run) {
+      if (run && (run.scenario_name || run.mode)) {
+        const parts = [run.run_id];
+        if (run.scenario_name) parts.push(run.scenario_name);
+        if (run.mode) parts.push(run.mode);
+        const labels = getRunLabels(run);
+        return labels.length > 0 ? `${parts.join(" | ")} | ${labels.join(" | ")}` : parts.join(" | ");
+      }
+      return run && run.run_id ? `${run.run_id} (${run.mtime_iso})` : "";
+    }
+    function syncDashboardLinks(runId) {
+      const dashboardUrl = buildDashboardUrl(runId || "");
+      openDashboardTop.href = dashboardUrl;
+      openDashboardSuccess.href = dashboardUrl;
+    }
+    function updateExpoRunsInfo() {
+      const expoRuns = Array.isArray(state.recentRuns) ? state.recentRuns.filter((run) => run && run.is_canonical) : [];
+      if (expoRuns.length === 0) {
+        expoRunsInfo.textContent = "";
+        return;
+      }
+      expoRunsInfo.textContent = `Expo Runs: ${expoRuns.map((run) => run.run_id).join(" | ")}`;
+    }
+    function updateRecentRunsInfo() {
+      if (!Array.isArray(state.recentRuns) || state.recentRuns.length === 0) {
+        recentRunsInfo.textContent = "";
+        expoRunsInfo.textContent = "";
+        return;
+      }
+      const selected = state.recentRuns.find((run) => run.run_id === recentRunsSelect.value) || state.recentRuns[0];
+      if (!selected) {
+        recentRunsInfo.textContent = `${state.recentRuns.length} runs found`;
+        updateExpoRunsInfo();
+        return;
+      }
+      const parts = [];
+      if (selected.scenario_name) parts.push(selected.scenario_name);
+      if (selected.mode) parts.push(selected.mode);
+      const labels = getRunLabels(selected);
+      if (labels.length > 0) parts.push(labels.join(", "));
+      if (selected.tem_available) parts.push(`TEM ${selected.tem_status || "available"}`);
+      else parts.push("TEM not run");
+      const metaText = parts.length > 0 ? `${parts.join(" | ")}. ` : "";
+      recentRunsInfo.textContent = `${state.recentRuns.length} runs found. ${metaText}Updated ${selected.mtime_iso}.`;
+      updateExpoRunsInfo();
+    }
+    function populateScenarioPresets() {
+      scenarioPresetInput.innerHTML = "";
+      Object.keys(PRESET_DEFINITIONS).forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        scenarioPresetInput.appendChild(opt);
+      });
+    }
+    function applyPresetByName(presetName) {
+      const preset = PRESET_DEFINITIONS[presetName];
+      if (!preset || !state.baseConfig) return;
+      const nextCfg = normalizeConfig(deepClone(state.baseConfig));
+      preset.apply(nextCfg);
+      normalizeConfig(nextCfg);
+      state.workingConfig = nextCfg;
+      state.selectedScenarioName = presetName;
+      state.priceEdited = getByPath(state.baseConfig, "pricing.grid_price_per_kwh") !== getByPath(nextCfg, "pricing.grid_price_per_kwh");
+      scenarioPresetInput.value = presetName;
+      modeInput.value = preset.mode;
+      clearFeedback();
+      setDetails({});
+      renderNumericInputs();
+      validateAndRender();
+    }
 
     function showErrorBanner(msg) {
       if (!msg) {
@@ -196,18 +468,241 @@
       errorBanner.textContent = msg;
       errorBanner.classList.add("show");
     }
-    function showSuccess(runId) {
-      successText.textContent = `Simulation completed for run_id: ${runId}`;
-      openRunJsonBtn.href = `/api/runs/${encodeURIComponent(runId)}`;
-      const dashboardUrl = buildDashboardUrl(runId);
-      openDashboardTop.href = dashboardUrl;
-      openDashboardSuccess.href = dashboardUrl;
+    function showSuccess(meta) {
+      successText.textContent = "Simulation completed successfully.";
+      renderSuccessMeta([
+        ["run_id", meta.run_id || "n/a"],
+        ["scenario_name", meta.scenario_name || "n/a"],
+        ["mode", meta.mode || "n/a"],
+        ["price per kWh", formatPricePerKwh(meta.price_per_kwh)]
+      ]);
+      openRunJsonBtn.href = `/api/runs/${encodeURIComponent(meta.run_id)}`;
+      syncDashboardLinks(meta.run_id);
       successBanner.classList.add("show");
     }
     function hideSuccess() {
       successBanner.classList.remove("show");
       successText.textContent = "";
+      successMeta.innerHTML = "";
       openRunJsonBtn.href = "#";
+    }
+    function updateTemButtonState() {
+      runTemBtn.disabled = state.temBusy || !state.currentRunContext;
+    }
+    function showTemMessage(message, tone) {
+      if (!message) {
+        temMessage.className = "banner";
+        temMessage.textContent = "";
+        return;
+      }
+      temMessage.className = `banner show ${tone === "error" ? "banner-error" : "banner-success"}`;
+      temMessage.textContent = message;
+    }
+    function buildRunContextLabel(runMeta) {
+      if (!runMeta) return "";
+      const parts = [runMeta.run_id];
+      if (runMeta.scenario_name) parts.push(runMeta.scenario_name);
+      if (runMeta.mode) parts.push(runMeta.mode);
+      return parts.join(" | ");
+    }
+    function getRecentRunById(runId) {
+      return state.recentRuns.find((run) => run.run_id === runId) || null;
+    }
+    function renderEmsSection() {
+      if (!state.currentRunContext) {
+        emsSection.classList.remove("show");
+        emsRunContext.textContent = "Run a scenario or select a recent run to view EMS behavior.";
+        emsSummaryMeta.innerHTML = "";
+        emsModeDescription.textContent = "EMS behavior will appear here after you run or select a scenario.";
+        emsPowerSourceSummary.textContent = "Power-source behavior will update from the selected run.";
+        return;
+      }
+
+      emsSection.classList.add("show");
+      emsRunContext.textContent = `Selected run: ${buildRunContextLabel(state.currentRunContext)}`;
+
+      if (!state.currentEmsSummary) {
+        renderMetaChips(emsSummaryMeta, [
+          ["mode", state.currentRunContext.mode || "n/a"],
+          ["storage", "n/a"],
+          ["battery SOC", "n/a"],
+          ["supercap energy", "n/a"],
+          ["regen captured", "n/a"],
+          ["regen lost", "n/a"]
+        ]);
+        emsModeDescription.textContent = "EMS summary is not available for the selected run.";
+        emsPowerSourceSummary.textContent = "Power-source behavior is not available for the selected run.";
+        return;
+      }
+
+      renderMetaChips(emsSummaryMeta, [
+        ["mode", state.currentEmsSummary.mode || state.currentRunContext.mode || "n/a"],
+        ["storage", formatEnabled(state.currentEmsSummary.storageEnabled)],
+        ["startup assist", formatEnabled(state.currentEmsSummary.startupAssistEnabled)],
+        ["grid sag support", formatEnabled(state.currentEmsSummary.gridSagMitigationEnabled)],
+        ["battery SOC", formatPercentFromFraction(state.currentEmsSummary.batterySOC)],
+        ["supercap energy", isFiniteNumber(state.currentEmsSummary.supercapEnergy_kwh) ? `${formatMetric(state.currentEmsSummary.supercapEnergy_kwh, 3)} kWh` : "n/a"],
+        ["storage share", formatPercentValue(state.currentEmsSummary.storageShare_pct)],
+        ["regen captured", isFiniteNumber(state.currentEmsSummary.regenCaptured_kwh) ? `${formatMetric(state.currentEmsSummary.regenCaptured_kwh, 3)} kWh` : "n/a"],
+        ["regen lost", isFiniteNumber(state.currentEmsSummary.regenLost_kwh) ? `${formatMetric(state.currentEmsSummary.regenLost_kwh, 3)} kWh` : "n/a"]
+      ]);
+      emsModeDescription.textContent = state.currentEmsSummary.modeDescription || "EMS mode description unavailable.";
+      emsPowerSourceSummary.textContent = state.currentEmsSummary.currentPowerSourceSummary || "Power-source summary unavailable.";
+    }
+    function populateTemBaselineRuns() {
+      const currentValue = temBaselineRun.value;
+      temBaselineRun.innerHTML = "";
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "No baseline comparison";
+      temBaselineRun.appendChild(noneOpt);
+      if (!state.currentRunContext) return;
+
+      const baselineRuns = state.recentRuns.filter((run) => run.run_id !== state.currentRunContext.run_id && run.mode === "baseline");
+      const nonBaselineRuns = state.recentRuns.filter((run) => run.run_id !== state.currentRunContext.run_id && run.mode !== "baseline");
+      const candidates = baselineRuns.concat(nonBaselineRuns);
+
+      candidates.forEach((run) => {
+        const opt = document.createElement("option");
+        opt.value = run.run_id;
+        opt.textContent = formatRecentRunLabel(run);
+        temBaselineRun.appendChild(opt);
+      });
+
+      let preferredValue = currentValue;
+      if (!preferredValue && state.currentTemArtifact && typeof state.currentTemArtifact.baseline_run_id === "string") {
+        preferredValue = state.currentTemArtifact.baseline_run_id;
+      }
+      if (!preferredValue && state.currentRunContext.mode === "hess" && baselineRuns.length > 0) {
+        preferredValue = baselineRuns[0].run_id;
+      }
+      temBaselineRun.value = preferredValue;
+    }
+    function renderTemSection() {
+      if (!state.currentRunContext) {
+        temSection.classList.remove("show");
+        temRunContext.textContent = "Run a scenario or select a recent run to analyze it with TEM.";
+        temActionHint.textContent = "TEM reads completed simulator outputs and writes a post-run analysis artifact.";
+        temSummaryMeta.innerHTML = "";
+        temRecommendation.textContent = "Run TEM analysis to generate a recommendation summary for the selected run.";
+        temStrategy.textContent = "TEM summarizes an offline storage strategy from completed simulator outputs.";
+        temResultBlock.style.display = "none";
+        updateTemButtonState();
+        return;
+      }
+
+      temSection.classList.add("show");
+      temResultBlock.style.display = "block";
+      temRunContext.textContent = `Selected run: ${buildRunContextLabel(state.currentRunContext)}`;
+      populateTemBaselineRuns();
+
+      if (state.currentTemArtifact) {
+        renderMetaChips(temSummaryMeta, [
+          ["TEM status", state.currentTemArtifact.status || "n/a"],
+          ["total cost", formatMetric(state.currentTemArtifact.total_cost)],
+          ["savings vs baseline", formatMetric(state.currentTemArtifact.savings_total_vs_baseline)],
+          ["baseline run", state.currentTemArtifact.baseline_run_id || "not provided"]
+        ]);
+        temRecommendation.textContent = state.currentTemArtifact.recommendation_summary || "n/a";
+        temStrategy.textContent = state.currentTemArtifact.charge_discharge_strategy_summary || "n/a";
+        temActionHint.textContent = "TEM artifact available. Run the analysis again to refresh it with the selected baseline comparison.";
+      } else {
+        renderMetaChips(temSummaryMeta, [
+          ["TEM status", state.currentRunContext.tem_status || "not run"],
+          ["total cost", "n/a"],
+          ["savings vs baseline", "n/a"],
+          ["baseline run", temBaselineRun.value || "not provided"]
+        ]);
+        temRecommendation.textContent = "Run TEM analysis to generate a recommendation summary for the selected run.";
+        temStrategy.textContent = "TEM summarizes an offline storage strategy from completed simulator outputs.";
+        temActionHint.textContent = "TEM reads completed simulator outputs and writes a post-run analysis artifact.";
+      }
+
+      updateTemButtonState();
+    }
+    function resetTemContext() {
+      state.currentRunContext = null;
+      state.currentEmsSummary = null;
+      state.currentTemArtifact = null;
+      state.temBusy = false;
+      showTemMessage("");
+      syncDashboardLinks("");
+      renderEmsSection();
+      renderTemSection();
+    }
+    async function loadRunPayloadMeta(runId) {
+      const payload = await fetchJson(`/api/runs/${encodeURIComponent(runId)}`);
+      return payload && payload.meta && typeof payload.meta === "object" ? payload.meta : {};
+    }
+    async function loadTemArtifactOptional(runId) {
+      try {
+        return await fetchJson(`/api/tem/${encodeURIComponent(runId)}`);
+      } catch (e) {
+        if ((e.message || "").includes("TEM artifact not found")) return null;
+        throw e;
+      }
+    }
+    async function showRunForTem(runMeta) {
+      if (!runMeta || !runMeta.run_id) {
+        resetTemContext();
+        return;
+      }
+      state.currentRunContext = {
+        run_id: runMeta.run_id,
+        scenario_name: runMeta.scenario_name || null,
+        mode: runMeta.mode || null,
+        tem_status: runMeta.tem_status || null
+      };
+      state.currentEmsSummary = null;
+      state.currentTemArtifact = null;
+      showTemMessage("");
+      syncDashboardLinks(runMeta.run_id);
+      renderEmsSection();
+      renderTemSection();
+      try {
+        const runPayloadMeta = await loadRunPayloadMeta(runMeta.run_id);
+        if (runPayloadMeta.scenarioName) state.currentRunContext.scenario_name = runPayloadMeta.scenarioName;
+        if (runPayloadMeta.mode) state.currentRunContext.mode = runPayloadMeta.mode;
+        if (runPayloadMeta.temStatus) state.currentRunContext.tem_status = runPayloadMeta.temStatus;
+        state.currentEmsSummary = runPayloadMeta.emsSummary && typeof runPayloadMeta.emsSummary === "object"
+          ? runPayloadMeta.emsSummary
+          : null;
+        if (runPayloadMeta.temAvailable || runMeta.tem_available) {
+          state.currentTemArtifact = await loadTemArtifactOptional(runMeta.run_id);
+        }
+      } catch (e) {
+        showErrorBanner(`Failed to load run details: ${e.message}`);
+      }
+      renderEmsSection();
+      renderTemSection();
+    }
+    async function runTemAnalysis() {
+      if (!state.currentRunContext) return;
+      state.temBusy = true;
+      updateTemButtonState();
+      showTemMessage("");
+      try {
+        const payload = { run_id: state.currentRunContext.run_id };
+        if (temBaselineRun.value) payload.baseline_run_id = temBaselineRun.value;
+        const resp = await fetch("/api/tem/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        setDetails(data);
+        if (!resp.ok) throw new Error(data && data.error ? data.error : "TEM analysis failed.");
+        state.currentTemArtifact = await loadTemArtifactOptional(state.currentRunContext.run_id);
+        state.currentRunContext.tem_status = state.currentTemArtifact && state.currentTemArtifact.status ? state.currentTemArtifact.status : "complete";
+        showTemMessage("TEM analysis completed successfully.", "success");
+        await loadRecentRuns();
+        renderTemSection();
+      } catch (e) {
+        showTemMessage(e.message || String(e), "error");
+      } finally {
+        state.temBusy = false;
+        updateTemButtonState();
+      }
     }
     function setDetails(obj) {
       detailsPre.textContent = JSON.stringify(obj, null, 2);
@@ -256,6 +751,7 @@
       const hasErrors = Object.keys(state.validationErrors).length > 0;
       const disabled = state.busy || !state.workingConfig || hasErrors;
       runBtnTop.disabled = disabled;
+      updateTemButtonState();
     }
 
     function renderCorridorTable() {
@@ -374,40 +870,56 @@
     async function loadRecentRuns() {
       try {
         const runs = await fetchJson("/api/runs/list");
+        state.recentRuns = Array.isArray(runs) ? runs : [];
+        const selectedRunIdBefore = recentRunsSelect.value;
         recentRunsSelect.innerHTML = "";
-        if (!Array.isArray(runs) || runs.length === 0) {
+        if (state.recentRuns.length === 0) {
           const opt = document.createElement("option");
           opt.value = "";
           opt.textContent = "No runs available";
           recentRunsSelect.appendChild(opt);
           openRecentRunBtn.disabled = true;
           recentRunsInfo.textContent = "";
+          if (!state.busy && !state.temBusy) resetTemContext();
           return;
         }
-        runs.forEach((r) => {
+        state.recentRuns.forEach((r) => {
           const opt = document.createElement("option");
           opt.value = r.run_id;
-          opt.textContent = `${r.run_id} (${r.mtime_iso})`;
+          opt.textContent = formatRecentRunLabel(r);
           recentRunsSelect.appendChild(opt);
         });
+        if (selectedRunIdBefore && state.recentRuns.some((run) => run.run_id === selectedRunIdBefore)) {
+          recentRunsSelect.value = selectedRunIdBefore;
+        }
+        if (state.currentRunContext && state.recentRuns.some((run) => run.run_id === state.currentRunContext.run_id)) {
+          const refreshed = getRecentRunById(state.currentRunContext.run_id);
+          state.currentRunContext.scenario_name = refreshed.scenario_name || state.currentRunContext.scenario_name;
+          state.currentRunContext.mode = refreshed.mode || state.currentRunContext.mode;
+          state.currentRunContext.tem_status = refreshed.tem_status || state.currentRunContext.tem_status;
+        }
         openRecentRunBtn.disabled = false;
-        recentRunsInfo.textContent = `${runs.length} runs found`;
+        updateRecentRunsInfo();
+        if (!state.currentRunContext) {
+          await showRunForTem(getRecentRunById(recentRunsSelect.value));
+        } else {
+          renderEmsSection();
+          renderTemSection();
+        }
       } catch (e) {
+        state.recentRuns = [];
         recentRunsInfo.textContent = `Failed to load runs: ${e.message}`;
+        expoRunsInfo.textContent = "";
       }
     }
 
     async function loadDefaultConfig() {
-      const cfg = await fetchJson("/api/config/default");
-      if (!cfg.pricing || typeof cfg.pricing !== "object") cfg.pricing = {};
-      if (typeof cfg.pricing.grid_price_per_kwh !== "number") cfg.pricing.grid_price_per_kwh = 0.0;
+      const cfg = normalizeConfig(await fetchJson("/api/config/default"));
       state.baseConfig = deepClone(cfg);
       state.workingConfig = deepClone(cfg);
       state.priceEdited = false;
       runIdInput.value = nowRunId();
-      modeInput.value = "hess";
-      renderNumericInputs();
-      validateAndRender();
+      applyPresetByName("HESS Reference");
     }
 
     async function runSimulation() {
@@ -426,13 +938,27 @@
           if (!overrides.pricing || typeof overrides.pricing !== "object") overrides.pricing = {};
           overrides.pricing.grid_price_per_kwh = getByPath(state.workingConfig, "pricing.grid_price_per_kwh");
         }
-        const payload = { run_id: runId, mode, overrides };
+        const payload = { run_id: runId, mode, scenario_name: state.selectedScenarioName, overrides };
         const resp = await fetch("/api/sim/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         const data = await resp.json();
         setDetails(data);
         if (!resp.ok) throw new Error(data && data.error ? data.error : "Simulation failed.");
-        showSuccess(runId);
+        showSuccess({
+          run_id: data.run_id || runId,
+          scenario_name: data.scenario_name || state.selectedScenarioName,
+          mode: data.mode || mode,
+          price_per_kwh: isFiniteNumber(data.price_per_kwh) ? data.price_per_kwh : getByPath(state.workingConfig, "pricing.grid_price_per_kwh")
+        });
+        await showRunForTem({
+          run_id: data.run_id || runId,
+          scenario_name: data.scenario_name || state.selectedScenarioName,
+          mode: data.mode || mode,
+          tem_available: false,
+          tem_status: null
+        });
         await loadRecentRuns();
+        recentRunsSelect.value = data.run_id || runId;
+        updateRecentRunsInfo();
       } catch (e) {
         showErrorBanner(e.message || String(e));
       } finally {
@@ -442,7 +968,9 @@
     }
 
     function wireEvents() {
+      populateScenarioPresets();
       runBtnTop.addEventListener("click", runSimulation);
+      scenarioPresetInput.addEventListener("change", () => applyPresetByName(scenarioPresetInput.value));
       runIdInput.addEventListener("input", validateAndRender);
       modeInput.addEventListener("change", validateAndRender);
       priceInput.addEventListener("input", () => {
@@ -462,11 +990,18 @@
         state.workingConfig.corridor.speed_limits_mps.push(20.0);
         validateAndRender();
       });
+      recentRunsSelect.addEventListener("change", async () => {
+        updateRecentRunsInfo();
+        const selectedRun = getRecentRunById(recentRunsSelect.value);
+        if (selectedRun) await showRunForTem(selectedRun);
+      });
       openRecentRunBtn.addEventListener("click", () => {
         const runId = recentRunsSelect.value;
         if (!runId) return;
         window.open(`/api/runs/${encodeURIComponent(runId)}`, "_blank", "noopener");
       });
+      temBaselineRun.addEventListener("change", renderTemSection);
+      runTemBtn.addEventListener("click", runTemAnalysis);
     }
 
     async function init() {

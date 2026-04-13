@@ -3,7 +3,7 @@
 Emit JSONL telemetry files from a timeline CSV.
 
 Default input:
-  simulator/outputs/timeline_*.csv  (configurable via --timeline)
+  simulator/outputs/timeline_MR90_hess.csv  (configurable via --timeline)
 
 Outputs (relative to repo root):
   bus/in/telemetry.train.state.v1.jsonl
@@ -158,12 +158,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Emit telemetry JSONL from a simulator timeline CSV."
     )
-    default_timeline = REPO_ROOT / "simulator" / "outputs" / "timeline_W6_vector_01.csv"
+    default_timeline = REPO_ROOT / "simulator" / "outputs" / "timeline_MR90_hess.csv"
     parser.add_argument(
         "--timeline",
         type=Path,
         default=default_timeline,
-        help="Path to timeline CSV (default: simulator/outputs/timeline_W6_vector_01.csv).",
+        help="Path to timeline CSV (default: simulator/outputs/timeline_MR90_hess.csv).",
     )
     return parser.parse_args()
 

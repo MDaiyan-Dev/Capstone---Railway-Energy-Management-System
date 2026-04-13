@@ -32,6 +32,12 @@ DASHBOARD_DIR = REPO_ROOT / "dashboard"
 
 # Default run for "Fetch Live" looping
 DEFAULT_LIVE_RUN_ID = "MR90_hess"
+EXPO_RUN_DISPLAY_ORDER = {
+    "EXPO_baseline_reference": 0,
+    "EXPO_hess_reference": 1,
+    "EXPO_high_price": 2,
+    "EXPO_constrained_grid": 3,
+}
 
 # Epoch for looping live playback
 SIM_EPOCH = time.time()
@@ -83,6 +89,14 @@ def _kpi_path(run_id: str) -> Path:
     return SIM_OUTPUT_DIR / f"kpi_{run_id}.json"
 
 
+def _config_path(run_id: str) -> Path:
+    return SIM_OUTPUT_DIR / f"config_{run_id}.json"
+
+
+def _tem_path(run_id: str) -> Path:
+    return SIM_OUTPUT_DIR / f"tem_{run_id}.json"
+
+
 def load_timeline(run_id: str) -> List[TimelineRow]:
     path = _timeline_path(run_id)
     if not path.exists():
@@ -131,6 +145,294 @@ def load_kpi(run_id: str) -> Dict[str, Any]:
         raise FileNotFoundError(f"KPI JSON not found for run_id={run_id} at {path}")
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_resolved_config_optional(run_id: str) -> Optional[Dict[str, Any]]:
+    path = _config_path(run_id)
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def load_tem_optional(run_id: str) -> Optional[Dict[str, Any]]:
+    path = _tem_path(run_id)
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _optional_clean_text(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def is_canonical_run_id(run_id: str) -> bool:
+    return isinstance(run_id, str) and run_id.startswith("EXPO_")
+
+
+def extract_run_metadata(cfg: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    meta = cfg.get("meta", {}) if isinstance(cfg, dict) else {}
+    if not isinstance(meta, dict):
+        meta = {}
+    pricing = cfg.get("pricing", {}) if isinstance(cfg, dict) else {}
+    if not isinstance(pricing, dict):
+        pricing = {}
+
+    mode = _optional_clean_text(meta.get("mode"))
+    if mode not in {"baseline", "hess"}:
+        mode = None
+
+    raw_price = pricing.get("grid_price_per_kwh")
+    try:
+        price_per_kwh = float(raw_price) if raw_price is not None else None
+    except (TypeError, ValueError):
+        price_per_kwh = None
+
+    return {
+        "scenario_name": _optional_clean_text(meta.get("scenario_name")),
+        "mode": mode,
+        "created_at_utc": _optional_clean_text(meta.get("created_at_utc")),
+        "price_per_kwh": price_per_kwh,
+    }
+
+
+def _round_or_none(value: Optional[float], digits: int = 6) -> Optional[float]:
+    if value is None:
+        return None
+    return round(float(value), digits)
+
+
+def _positive_number_enabled(value: Any) -> bool:
+    try:
+        return float(value) > 0.0
+    except (TypeError, ValueError):
+        return False
+
+
+def select_ems_reference_row(rows: List[TimelineRow]) -> Optional[TimelineRow]:
+    if not rows:
+        return None
+
+    for row in reversed(rows):
+        positive_traction_power = max(row.P_grid_w, 0.0) + max(row.P_batt_w, 0.0) + max(row.P_sc_w, 0.0)
+        charging_power = max(-row.P_batt_w, 0.0) + max(-row.P_sc_w, 0.0)
+        if positive_traction_power > 1e-6 or charging_power > 1e-6:
+            return row
+
+    return rows[-1]
+
+
+def summarize_power_source(row: Optional[TimelineRow]) -> str:
+    if row is None:
+        return "Power source summary unavailable"
+
+    charging_power = max(-row.P_batt_w, 0.0) + max(-row.P_sc_w, 0.0)
+    if charging_power > 1e-6:
+        return "Regenerative capture active"
+
+    positive_grid = max(row.P_grid_w, 0.0)
+    positive_storage = max(row.P_batt_w, 0.0) + max(row.P_sc_w, 0.0)
+    total_positive_power = positive_grid + positive_storage
+
+    if total_positive_power <= 1e-6:
+        return "No active traction demand"
+
+    storage_share = positive_storage / total_positive_power
+    if storage_share >= 0.65:
+        return "Storage-assisted traction"
+    if storage_share >= 0.2:
+        return "Mixed grid and storage support"
+    return "Grid dominant"
+
+
+def build_ems_summary(
+    cfg: Optional[Dict[str, Any]],
+    kpi: Optional[Dict[str, Any]],
+    row: Optional[TimelineRow],
+) -> Dict[str, Any]:
+    run_meta = extract_run_metadata(cfg)
+    mode = run_meta["mode"]
+    if mode not in {"baseline", "hess"}:
+        mode = "hess" if row and (abs(row.P_batt_w) > 1e-6 or abs(row.P_sc_w) > 1e-6) else "baseline"
+
+    hess_cfg = cfg.get("hess", {}) if isinstance(cfg, dict) and isinstance(cfg.get("hess"), dict) else {}
+    supercap_cfg = hess_cfg.get("supercap", {}) if isinstance(hess_cfg.get("supercap"), dict) else {}
+    grid_cfg = hess_cfg.get("grid", {}) if isinstance(hess_cfg.get("grid"), dict) else {}
+    kpi = kpi if isinstance(kpi, dict) else {}
+
+    if mode == "baseline":
+        mode_description = (
+            "Traditional grid-dependent operating mode with no onboard storage support."
+        )
+        storage_enabled = False
+        startup_assist_enabled = False
+        regen_capture_enabled = False
+        grid_sag_mitigation_enabled = False
+    else:
+        mode_description = (
+            "Battery and supercapacitor support reduce grid dependence during traction and help capture regenerative energy."
+        )
+        storage_enabled = True
+        startup_assist_enabled = _positive_number_enabled(supercap_cfg.get("startup_assist_secs"))
+        regen_capture_enabled = True
+        grid_sag_mitigation_enabled = _positive_number_enabled(grid_cfg.get("sag_max_power_kw"))
+
+    positive_grid = max(row.P_grid_w, 0.0) if row is not None else 0.0
+    positive_storage = (
+        max(row.P_batt_w, 0.0) + max(row.P_sc_w, 0.0)
+        if row is not None
+        else 0.0
+    )
+    total_positive_power = positive_grid + positive_storage
+    storage_share_pct = (
+        _round_or_none((positive_storage / total_positive_power) * 100.0, 1)
+        if total_positive_power > 1e-6
+        else None
+    )
+
+    regen_captured_kwh = kpi.get("regen_captured_kwh")
+    if regen_captured_kwh is None and row is not None:
+        regen_captured_kwh = row.regen_kwh_captured
+
+    regen_lost_kwh = kpi.get("regen_lost_kwh")
+    if regen_lost_kwh is None and row is not None:
+        regen_lost_kwh = row.regen_kwh_lost
+
+    battery_soc = row.soc_batt if row is not None else None
+    supercap_energy_kwh = row.e_sc_kwh if row is not None else None
+
+    return {
+        "mode": mode,
+        "modeDescription": mode_description,
+        "storageEnabled": storage_enabled,
+        "startupAssistEnabled": startup_assist_enabled,
+        "regenCaptureEnabled": regen_capture_enabled,
+        "gridSagMitigationEnabled": grid_sag_mitigation_enabled,
+        "batterySOC": _round_or_none(battery_soc, 6),
+        "supercapEnergy_kwh": _round_or_none(supercap_energy_kwh, 6),
+        "storageShare_pct": storage_share_pct,
+        "regenCaptured_kwh": _round_or_none(regen_captured_kwh, 6),
+        "regenLost_kwh": _round_or_none(regen_lost_kwh, 6),
+        "currentPowerSourceSummary": summarize_power_source(row),
+    }
+
+
+def build_tem_summary_preview(artifact: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(artifact, dict):
+        return None
+    return {
+        "status": artifact.get("status"),
+        "totalCost": artifact.get("total_cost"),
+        "savingsVsBaseline": artifact.get("savings_total_vs_baseline"),
+        "recommendation": artifact.get("recommendation_summary"),
+    }
+
+
+def build_tem_recommendations(
+    mode: Optional[str],
+    price_per_kwh: float,
+    baseline_available: bool,
+) -> Dict[str, str]:
+    if mode == "baseline":
+        recommendation = (
+            "TEM analysis identifies this run as a reference for later HESS cost comparisons."
+        )
+        strategy = (
+            "Baseline mode does not dispatch onboard storage. Use this run as the grid-cost reference for later comparison."
+        )
+    elif mode == "hess" and price_per_kwh >= 0.2:
+        recommendation = (
+            "Prioritize storage discharge during high-price periods to reduce grid draw."
+        )
+        strategy = (
+            "Use battery and supercapacitor support during higher-cost traction demand and recover energy during braking where available."
+        )
+    elif mode == "hess" and price_per_kwh <= 0.05:
+        recommendation = (
+            "Charge storage during low-price periods where operationally feasible."
+        )
+        strategy = (
+            "Favor charging storage during lower-cost windows, then use stored energy to offset later traction demand."
+        )
+    else:
+        recommendation = (
+            "Use storage selectively to trim grid demand while maintaining regenerative capture."
+        )
+        strategy = (
+            "Blend moderate storage support with regenerative capture to reduce total grid cost without changing the simulator timeline."
+        )
+
+    if not baseline_available:
+        strategy = (
+            f"{strategy} Baseline comparison not available. Savings fields are informational only after a baseline run is provided."
+        )
+
+    return {
+        "recommendation_summary": recommendation,
+        "charge_discharge_strategy_summary": strategy,
+    }
+
+
+def build_tem_artifact(run_id: str, baseline_run_id: Optional[str] = None) -> Dict[str, Any]:
+    kpi = load_kpi(run_id)
+    cfg = load_resolved_config_optional(run_id)
+    if cfg is None:
+        raise FileNotFoundError(
+            f"Resolved config JSON not found for run_id={run_id} at {_config_path(run_id)}"
+        )
+
+    run_meta = extract_run_metadata(cfg)
+    price_per_kwh = float(run_meta["price_per_kwh"] or 0.0)
+    grid_energy_kwh = float(kpi.get("grid_energy_kwh", 0.0) or 0.0)
+    distance_km = float(kpi.get("distance_km", 0.0) or 0.0)
+    total_cost = grid_energy_kwh * price_per_kwh
+
+    savings_total = None
+    savings_per_train_km = None
+    baseline_id_clean = _optional_clean_text(baseline_run_id)
+    if baseline_id_clean is not None:
+        baseline_kpi = load_kpi(baseline_id_clean)
+        baseline_grid_energy_kwh = float(baseline_kpi.get("grid_energy_kwh", 0.0) or 0.0)
+        baseline_total_cost = baseline_grid_energy_kwh * price_per_kwh
+        savings_total = baseline_total_cost - total_cost
+        savings_per_train_km = (
+            savings_total / distance_km if distance_km > 0.0 else None
+        )
+
+    recommendations = build_tem_recommendations(
+        mode=run_meta["mode"],
+        price_per_kwh=price_per_kwh,
+        baseline_available=baseline_id_clean is not None,
+    )
+
+    return {
+        "run_id": run_id,
+        "scenario_name": run_meta["scenario_name"],
+        "mode": run_meta["mode"],
+        "analyzed_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "pricing_used_per_kwh": _round_or_none(price_per_kwh, 6),
+        "baseline_run_id": baseline_id_clean,
+        "grid_energy_kwh": _round_or_none(grid_energy_kwh, 6),
+        "distance_km": _round_or_none(distance_km, 6),
+        "total_cost": _round_or_none(total_cost, 6),
+        "savings_total_vs_baseline": _round_or_none(savings_total, 6),
+        "savings_per_train_km_vs_baseline": _round_or_none(savings_per_train_km, 6),
+        "recommendation_summary": recommendations["recommendation_summary"],
+        "charge_discharge_strategy_summary": recommendations["charge_discharge_strategy_summary"],
+        "status": "complete",
+    }
 
 
 def derive_stop_events(rows: List[TimelineRow]) -> List[StopEvent]:
@@ -380,13 +682,51 @@ def api_config_default():
 
 @app.route("/api/runs/list", methods=["GET"])
 def api_runs_list():
-    runs: List[Dict[str, str]] = []
+    runs: List[Dict[str, Any]] = []
+    baseline_run_ids = set()
     for p in SIM_OUTPUT_DIR.glob("timeline_*.csv"):
         run_id = p.stem.removeprefix("timeline_")
-        mtime = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat()
-        runs.append({"run_id": run_id, "mtime_iso": mtime})
+        mtime_ts = p.stat().st_mtime
+        mtime = datetime.fromtimestamp(mtime_ts, tz=timezone.utc).isoformat()
+        run_meta = extract_run_metadata(load_resolved_config_optional(run_id))
+        tem_artifact = load_tem_optional(run_id)
+        if run_meta["mode"] == "baseline":
+            baseline_run_ids.add(run_id)
+        runs.append(
+            {
+                "run_id": run_id,
+                "mtime_iso": mtime,
+                "scenario_name": run_meta["scenario_name"],
+                "mode": run_meta["mode"],
+                "tem_available": tem_artifact is not None,
+                "tem_status": tem_artifact.get("status") if isinstance(tem_artifact, dict) else None,
+                "is_canonical": is_canonical_run_id(run_id),
+                "_sort_mtime": mtime_ts,
+            }
+        )
 
-    runs.sort(key=lambda r: r["mtime_iso"], reverse=True)
+    has_any_baseline = bool(baseline_run_ids)
+    for run in runs:
+        baseline_available = run["mode"] != "baseline" and has_any_baseline
+        labels: List[str] = []
+        if run["is_canonical"]:
+            labels.append("Canonical")
+        if run["tem_available"]:
+            labels.append("TEM ready")
+        if baseline_available:
+            labels.append("Baseline available")
+        run["baseline_available"] = baseline_available
+        run["labels"] = labels
+
+    runs.sort(
+        key=lambda r: (
+            0 if r["is_canonical"] else 1,
+            EXPO_RUN_DISPLAY_ORDER.get(r["run_id"], 999 if r["is_canonical"] else 0),
+            -float(r["_sort_mtime"]),
+        )
+    )
+    for run in runs:
+        run.pop("_sort_mtime", None)
     return jsonify(runs)
 
 
@@ -475,6 +815,14 @@ def build_run_payload(run_id: str) -> dict:
     rows = load_timeline(run_id)
     kpi_summary = load_kpi(run_id)
     stops = derive_stop_events(rows)
+    resolved_cfg = load_resolved_config_optional(run_id)
+    run_meta = extract_run_metadata(resolved_cfg)
+    tem_artifact = load_tem_optional(run_id)
+    ems_summary = build_ems_summary(
+        cfg=resolved_cfg,
+        kpi=kpi_summary,
+        row=select_ems_reference_row(rows),
+    )
 
     duration_s = rows[-1].t_s
     if len(rows) > 1:
@@ -632,6 +980,13 @@ def build_run_payload(run_id: str) -> dict:
             "scenario": f"{run_id}",
             "simulated": True,
             "kpiSummary": kpi_summary,
+            "scenarioName": run_meta["scenario_name"],
+            "mode": run_meta["mode"],
+            "createdAtUtc": run_meta["created_at_utc"],
+            "emsSummary": ems_summary,
+            "temAvailable": tem_artifact is not None,
+            "temStatus": tem_artifact.get("status") if isinstance(tem_artifact, dict) else None,
+            "temSummaryPreview": build_tem_summary_preview(tem_artifact),
         },
         "timeline": {
             "durationSec": duration_s,
@@ -648,6 +1003,79 @@ def api_runs(run_id: str):
     except (FileNotFoundError, RuntimeError) as e:
         return make_response(jsonify({"error": str(e)}), 500)
     return jsonify(payload)
+
+
+# ---------------------------------------------------------------------------
+# TEM analysis: post-run artifact generation
+# ---------------------------------------------------------------------------
+
+@app.route("/api/tem/run", methods=["POST"])
+def api_tem_run():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return make_response(jsonify({"error": "Invalid JSON payload"}), 400)
+
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not run_id.strip():
+        return make_response(jsonify({"error": "run_id is required"}), 400)
+    run_id = run_id.strip()
+    if not RUN_ID_RE.fullmatch(run_id):
+        return make_response(
+            jsonify({"error": "run_id must use only letters, digits, underscore, dash"}),
+            400,
+        )
+
+    baseline_run_id_raw = payload.get("baseline_run_id")
+    if baseline_run_id_raw is None:
+        baseline_run_id = None
+    elif isinstance(baseline_run_id_raw, str):
+        baseline_run_id = baseline_run_id_raw.strip() or None
+        if baseline_run_id is not None and not RUN_ID_RE.fullmatch(baseline_run_id):
+            return make_response(
+                jsonify(
+                    {
+                        "error": "baseline_run_id must use only letters, digits, underscore, dash"
+                    }
+                ),
+                400,
+            )
+    else:
+        return make_response(
+            jsonify({"error": "baseline_run_id must be a string when provided"}),
+            400,
+        )
+
+    try:
+        artifact = build_tem_artifact(run_id=run_id, baseline_run_id=baseline_run_id)
+    except FileNotFoundError as e:
+        return make_response(jsonify({"error": str(e)}), 404)
+    except (TypeError, ValueError, KeyError, json.JSONDecodeError) as e:
+        return make_response(jsonify({"error": f"Failed to build TEM analysis: {e}"}), 500)
+
+    tem_path = _tem_path(run_id)
+    tem_path.parent.mkdir(parents=True, exist_ok=True)
+    with tem_path.open("w", encoding="utf-8") as f:
+        json.dump(artifact, f, indent=2)
+
+    return jsonify(
+        {
+            "status": "ok",
+            "run_id": run_id,
+            "tem_artifact": str(tem_path),
+            "tem_summary": build_tem_summary_preview(artifact),
+        }
+    )
+
+
+@app.route("/api/tem/<run_id>", methods=["GET"])
+def api_tem_get(run_id: str):
+    artifact = load_tem_optional(run_id)
+    if artifact is None:
+        return make_response(
+            jsonify({"error": f"TEM artifact not found for run_id={run_id} at {_tem_path(run_id)}"}),
+            404,
+        )
+    return jsonify(artifact)
 
 
 # ---------------------------------------------------------------------------
@@ -672,6 +1100,14 @@ def api_sim_run():
     mode = payload.get("mode", "hess")
     if mode not in {"baseline", "hess"}:
         return make_response(jsonify({"error": "mode must be baseline or hess"}), 400)
+
+    scenario_name_raw = payload.get("scenario_name")
+    if scenario_name_raw is None:
+        scenario_name = None
+    elif isinstance(scenario_name_raw, str):
+        scenario_name = scenario_name_raw.strip() or None
+    else:
+        return make_response(jsonify({"error": "scenario_name must be a string when provided"}), 400)
 
     base_config_raw = payload.get("base_config")
     if base_config_raw is None:
@@ -702,6 +1138,8 @@ def api_sim_run():
         "--config",
         str(base_config_path),
     ]
+    if scenario_name is not None:
+        cmd.extend(["--scenario-name", scenario_name])
     if overrides_path is not None:
         cmd.extend(["--overrides", str(overrides_path)])
 
@@ -744,11 +1182,15 @@ def api_sim_run():
             500,
         )
 
+    run_meta = extract_run_metadata(load_resolved_config_optional(run_id))
     return jsonify(
         {
             "status": "ok",
             "run_id": run_id,
             "mode": mode,
+            "scenario_name": run_meta["scenario_name"],
+            "created_at_utc": run_meta["created_at_utc"],
+            "price_per_kwh": run_meta["price_per_kwh"],
             "artifacts": {
                 "timeline": str(timeline_path),
                 "kpi": str(kpi_path),
@@ -798,6 +1240,7 @@ def api_snapshot():
     phase_t = ((now - SIM_EPOCH) % duration_s) if duration_s > 0 else 0.0
     idx = _nearest_index_for_time(rows, phase_t)
     r = rows[idx]
+    resolved_cfg = load_resolved_config_optional(run_id)
 
     corridor_length_m = max(rr.x_m for rr in rows)
     station_sites = compute_station_sites(rows, stops, corridor_length_m)
@@ -904,6 +1347,7 @@ def api_snapshot():
     payload = {
         "kpi": kpi_live,
         "kpiSummary": kpi_summary,
+        "emsSummary": build_ems_summary(cfg=resolved_cfg, kpi=kpi_summary, row=r),
         "tiles": tiles,
         "status": {"assets": assets},
         "events": recent_events,

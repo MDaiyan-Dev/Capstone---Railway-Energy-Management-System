@@ -19,6 +19,7 @@ import json
 import math
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -141,12 +142,54 @@ def load_json_object(path: Path, label: str) -> Dict[str, Any]:
     return data
 
 
+def ensure_optional_config_sections(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(cfg)
+    pricing = normalized.get("pricing", {})
+    if not isinstance(pricing, dict):
+        pricing = {}
+    if "grid_price_per_kwh" not in pricing:
+        pricing["grid_price_per_kwh"] = 0.0
+    normalized["pricing"] = pricing
+    return normalized
+
+
 def load_config(path: Optional[Path], overrides_path: Optional[Path] = None) -> Dict[str, Any]:
     base_cfg = default_config() if path is None else load_json_object(path, "Config")
     if overrides_path is None:
-        return base_cfg
+        return ensure_optional_config_sections(base_cfg)
     overrides_cfg = load_json_object(overrides_path, "Overrides")
-    return deep_merge(base_cfg, overrides_cfg)
+    return ensure_optional_config_sections(deep_merge(base_cfg, overrides_cfg))
+
+
+def utc_now_iso() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def build_resolved_config(
+    cfg: Dict[str, Any],
+    run_id: str,
+    mode: str,
+    scenario_name: Optional[str],
+) -> Dict[str, Any]:
+    resolved_cfg = deepcopy(cfg)
+    meta = resolved_cfg.get("meta", {})
+    if not isinstance(meta, dict):
+        meta = {}
+    meta.update(
+        {
+            "run_id": run_id,
+            "scenario_name": scenario_name,
+            "mode": mode,
+            "created_at_utc": utc_now_iso(),
+        }
+    )
+    resolved_cfg["meta"] = meta
+    return resolved_cfg
 
 
 def build_params(cfg: Dict[str, Any], sim_mode: str, run_id: str, dt: float):
@@ -875,6 +918,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to partial JSON overrides merged onto the base config.",
     )
+    p.add_argument(
+        "--scenario-name",
+        type=str,
+        default=None,
+        help="Optional scenario name recorded in resolved config metadata.",
+    )
     return p.parse_args()
 
 
@@ -927,6 +976,17 @@ def main() -> None:
         baseline_grid_kwh=baseline_grid_kwh,
         grid_price_per_kwh=grid_price_per_kwh,
     )
+    scenario_name = (
+        args.scenario_name.strip()
+        if isinstance(args.scenario_name, str) and args.scenario_name.strip()
+        else None
+    )
+    resolved_cfg = build_resolved_config(
+        cfg=cfg,
+        run_id=sim.run_id,
+        mode=args.mode,
+        scenario_name=scenario_name,
+    )
 
     timeline_path = args.out_dir / f"timeline_{sim.run_id}.csv"
     kpi_path = args.out_dir / f"kpi_{sim.run_id}.json"
@@ -936,7 +996,7 @@ def main() -> None:
     with kpi_path.open("w", encoding="utf-8") as f:
         json.dump(kpi, f, indent=2)
     with cfg_path.open("w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2)
+        json.dump(resolved_cfg, f, indent=2)
 
     print(f"[run_sim] wrote timeline: {timeline_path}")
     print(f"[run_sim] wrote kpi:      {kpi_path}")

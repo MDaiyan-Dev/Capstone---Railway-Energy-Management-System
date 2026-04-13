@@ -16,11 +16,16 @@ const els={
   btnFetchLive:byId('btnFetchLive'), btnFetchRun:byId('btnFetchRun'),
   btnDemoLive:byId('btnDemoLive'), btnDemoRun:byId('btnDemoRun'),
   pickLive:byId('pickLive'), pickRun:byId('pickRun'),
-  lastUpdate:byId('lastUpdate')
+  lastUpdate:byId('lastUpdate'),
+  runMetaBar:byId('runMetaBar')
 };
 let runData=null, playTimer=null, tIndex=0, lastLiveAt=null, prevEventKeys=new Set();
 function byId(id){return document.getElementById(id)}
 function fmtPct(x){return (x*100).toFixed(1)+'%'}
+function fmtTimeSeconds(x){
+  const value = Number(x);
+  return Number.isFinite(value) ? value.toFixed(2) : '0.00';
+}
 function bestColor(state){ if(state==='red')return '#ed8796'; if(state==='amber')return '#f8bd60'; if(state==='green')return '#2e7d32'; return '#7f849c'}
 
 // subtitle elements under the tiles (no HTML change needed)
@@ -46,6 +51,42 @@ const ACK_KEY='rems_ack_v1'; let ackSet=new Set();
 try{ ackSet=new Set(JSON.parse(localStorage.getItem(ACK_KEY)||'[]')) }catch(_){}
 function saveAck(){ try{ localStorage.setItem(ACK_KEY, JSON.stringify([...ackSet])) }catch(_){ } }
 function evKey(ev){ return ev?.id || (ev?.ts ? (ev.text||'')+'@'+ev.ts : (ev?.text||'')) }
+
+function renderRunMeta(meta, options={}){
+  if(!els.runMetaBar) return;
+  els.runMetaBar.innerHTML='';
+
+  const items=[];
+  const sourceLabel = options.source === 'live' ? 'Live Snapshot' : 'Replay';
+  items.push({label:'Source', value:sourceLabel, tone:'neutral'});
+
+  const runId = meta?.runId || meta?.kpiSummary?.run_id || options.runId;
+  if(runId) items.push({label:'Run', value:runId});
+  if(meta?.scenarioName) items.push({label:'Scenario', value:meta.scenarioName});
+  if(meta?.mode) items.push({label:'Mode', value:meta.mode});
+  if(meta?.emsSummary) items.push({label:'EMS', value:'Summary Ready', tone:'info'});
+  if(meta?.temAvailable) items.push({label:'TEM', value:meta.temStatus || 'Available', tone:'success'});
+
+  if(items.length===0) return;
+
+  items.forEach(item=>{
+    const chip=document.createElement('span');
+    chip.className='meta-pill';
+    if(item.tone) chip.classList.add(`meta-pill-${item.tone}`);
+
+    const label=document.createElement('span');
+    label.className='meta-pill-label';
+    label.textContent=item.label;
+
+    const value=document.createElement('span');
+    value.className='meta-pill-value';
+    value.textContent=item.value;
+
+    chip.appendChild(label);
+    chip.appendChild(value);
+    els.runMetaBar.appendChild(chip);
+  });
+}
 
 function renderKPIs(k){
   if(!k)return;
@@ -225,6 +266,7 @@ function renderAssets(assets){
     }
     node.setAttribute('class','site-dot');
     node.setAttribute('data-type', a.type||'');
+    node.setAttribute('data-state', a.state||'grey');
     node.style.stroke = bestColor(a.state);
     node.style.filter = stateGlow(a.state);
     if(a.state==='red') node.classList.add('blink');
@@ -261,18 +303,35 @@ function showTip(html){ els.tip.innerHTML=html; els.tip.style.opacity=1 }
 function hideTip(){ els.tip.style.opacity=0 }
 
 function applyLivePayload(p){
+  pause();
+  runData=null;
+  els.slider.max='0';
+  els.slider.value='0';
+  els.playhead.style.display='none';
+  els.ticks.innerHTML='';
   renderKPIs(p.kpi);
   renderTiles(p.tiles);
   renderEvents(p.events);
   renderAssets(p.status?.assets);
+  renderRunMeta({
+    runId: p?.kpiSummary?.run_id,
+    mode: p?.emsSummary?.mode,
+    emsSummary: p?.emsSummary,
+    kpiSummary: p?.kpiSummary
+  }, {source:'live'});
   els.timeLabel.textContent='Time: live';
   lastLiveAt = Date.now();
 }
 
 function applyRun(run){
+  pause();
   runData=run;
   const pts=run?.timeline?.points||[];
   els.slider.max=Math.max(0,pts.length-1);
+  els.playhead.style.display='block';
+  renderRunMeta(run?.meta, {source:'replay'});
+  lastLiveAt = null;
+  els.lastUpdate.textContent = 'Last update: replay loaded';
   setIndex(0);
   byId('simBadge').style.display='inline-block';
   renderTicks();
@@ -288,31 +347,86 @@ function setIndex(i){
   renderAssets(pt.assets);
   renderEvents(pt.events);
   if(pt.extra) renderTiles(pt.extra);
-  els.timeLabel.textContent=`Time: t = ${pt.t}s (run ${runData.meta?.runId||'unknown'})`;
+  els.timeLabel.textContent=`Time: t = ${fmtTimeSeconds(pt.t)}s`;
   updatePlayhead();
 }
 
 function updatePlayhead(){
+  if(!runData){
+    els.playhead.textContent='t = 0.00s';
+    els.playhead.style.left='0px';
+    return;
+  }
   const w=els.slider.getBoundingClientRect().width;
   const max=Number(els.slider.max)||1, val=Number(els.slider.value)||0;
   const x = (val/max) * w;
   els.playhead.style.left = x+'px';
-  els.playhead.textContent = `t = ${runData ? runData.timeline.points[val].t : 0}s`;
+  els.playhead.textContent = `t = ${fmtTimeSeconds(runData.timeline.points[val].t)}s`;
+}
+
+function collectAlarmRanges(points, durationSec){
+  if(!Array.isArray(points) || points.length===0) return [];
+  const lastPointTime = Number(points[points.length-1]?.t) || 0;
+  const endOfTimeline = Math.max(Number(durationSec) || 0, lastPointTime);
+  const ranges=[];
+  let current=null;
+
+  points.forEach((pt, idx)=>{
+    const alarmEvents=(pt?.events||[]).filter(ev=>ev && ev.severity==='alarm');
+    const pointTime = Number(pt?.t) || 0;
+    const nextPointTime = idx < points.length - 1 ? (Number(points[idx+1]?.t) || pointTime) : endOfTimeline;
+
+    if(alarmEvents.length===0){
+      if(current){
+        ranges.push(current);
+        current=null;
+      }
+      return;
+    }
+
+    const texts = alarmEvents.map(ev=>ev.text).filter(Boolean);
+    if(current){
+      current.endIndex = idx;
+      current.endTime = Math.max(current.endTime, nextPointTime, pointTime);
+      texts.forEach(text=>current.texts.add(text));
+      return;
+    }
+
+    current = {
+      startIndex: idx,
+      endIndex: idx,
+      startTime: pointTime,
+      endTime: Math.max(nextPointTime, pointTime),
+      texts: new Set(texts)
+    };
+  });
+
+  if(current) ranges.push(current);
+
+  return ranges.map(range=>({
+    startTime: range.startTime,
+    endTime: range.endTime,
+    texts: [...range.texts]
+  }));
 }
 
 function renderTicks(){
   els.ticks.innerHTML='';
   if(!runData) return;
   const pts=runData.timeline.points;
-  const w=els.slider.getBoundingClientRect().width;
-  const max=pts.length-1;
-  pts.forEach((pt,idx)=>{
-    if(pt.events && pt.events.length){
-      const d=document.createElement('div'); d.className='tick alarm';
-      d.style.left = ((idx/max)*w)+'px';
-      d.title = pt.events.map(e=>e.text).join(' | ');
-      els.ticks.appendChild(d);
-    }
+  const durationSec = Number(runData?.timeline?.durationSec) || Number(pts[pts.length-1]?.t) || 0;
+  const safeDuration = durationSec > 0 ? durationSec : 1;
+  const ranges = collectAlarmRanges(pts, durationSec);
+
+  ranges.forEach(range=>{
+    const d=document.createElement('div');
+    d.className='tick-range alarm-range';
+    const leftPct = (range.startTime / safeDuration) * 100;
+    const widthPct = Math.max(((range.endTime - range.startTime) / safeDuration) * 100, 0.35);
+    d.style.left = `${leftPct}%`;
+    d.style.width = `${widthPct}%`;
+    d.title = range.texts.join(' | ') || 'Alarm active';
+    els.ticks.appendChild(d);
   });
 }
 
@@ -413,10 +527,10 @@ const focusMap = {
 
 function highlightTargets(pred){
   const nodes=[...els.mapSvg.querySelectorAll('.site-dot')];
-  nodes.forEach(n=>n.style.transform='');
-  const targets=nodes.filter(n=>pred({type:n.getAttribute('data-type'), state:(n.style.stroke||'')}));
-  targets.forEach(t=>{ t.style.transform='scale(1.25)'; });
-  setTimeout(()=>targets.forEach(t=>t.style.transform=''), 1600);
+  nodes.forEach(n=>n.classList.remove('site-dot-focus'));
+  const targets=nodes.filter(n=>pred({type:n.getAttribute('data-type'), state:n.getAttribute('data-state')}));
+  targets.forEach(t=>{ t.classList.add('site-dot-focus'); });
+  setTimeout(()=>targets.forEach(t=>t.classList.remove('site-dot-focus')), 900);
 }
 
 [...document.querySelectorAll('.tile')].forEach(tile=>{
@@ -451,3 +565,7 @@ const didAutoBootstrap = bootstrapFromQueryParams();
 if(!didAutoBootstrap){
   fetchJSON('data/live_demo.json').then(applyLivePayload).catch(()=>{});
 }
+
+window.addEventListener('resize', ()=>{
+  updatePlayhead();
+});
